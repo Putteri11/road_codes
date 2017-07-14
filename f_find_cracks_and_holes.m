@@ -11,6 +11,7 @@ function [ li ] = f_find_cracks_and_holes( Xyzti, ins_prof_pc )
 %               z  is the z-coordinate of the point,
 %               t  is the time stamp of the point, and
 %               i  is the intensity of the point.
+%           Note: the point cloud is assumed to 
 %       - ins_prof_pc (n_pc x 1):
 %           Indices of the profiles for the point cloud Xyzti, i.e.
 %           indicates in which profile each of the points belongs, gotten
