@@ -226,7 +226,7 @@ li = f_find_cracks_and_holes(Xyzti, ins_prof_pc);
 t_elapsed_profRetr = toc(ticID);
 disp(['Defect retrieval: ', num2str(t_elapsed_profRetr), ' seconds.'])
 
-n_skip = 1;
+n_skip = 10;
 ind_fig = ind_fig + 1;
 f_initFig(ind_fig, 'k')
 fscatter3_edit_Joona(Xyzti(1:n_skip:end, 1), Xyzti(1:n_skip:end, 2), Xyzti(1:n_skip:end, 3), Xyzti(1:n_skip:end, 5), cmap);

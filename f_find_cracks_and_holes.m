@@ -1,4 +1,4 @@
-function [ li ] = f_find_cracks_and_holes( Xyzti, ins_prof_pc )
+function [ li ] = f_find_cracks_and_holes( sub_Xyzti, sub_i_profs )
 %f_find_cracks_and_holes finds the cracks and holes of a laser scanned road
 % point cloud.
 %   Input:
@@ -47,59 +47,25 @@ function [ li ] = f_find_cracks_and_holes( Xyzti, ins_prof_pc )
 %
 
 
-n_pc = length(Xyzti(:,1)); % number of points in point cloud
-li_1 = zeros(n_pc, 1); % output preallocation (li="logical index")
-n_profs = max(ins_prof_pc); % number of profiles
+sub_n_pc = length(sub_Xyzti(:,1)); % number of points in point cloud
+li_1 = zeros(sub_n_pc, 1); % output preallocation (li="logical index")
+first_prof = sub_i_profs(1);
+sub_n_profs = max(sub_i_profs) - first_prof + 1; % number of profiles
 
-n_pc_profs = zeros(n_profs, 1); % number of points in all the profiles;
+n_pc_profs = zeros(sub_n_profs, 1); % number of points in all the profiles,
 % preallocation.
-help_var = ins_prof_pc(1); % a helper variable
+help_var = first_prof; % a helper variable
 
 % constructing n_pc_profs (fast)
-for ii=1:n_pc
-    if ins_prof_pc(ii)==help_var
-        n_pc_profs(help_var) = n_pc_profs(help_var) + 1;
-    else
-        help_var = ins_prof_pc(ii);
-        n_pc_profs(help_var) = n_pc_profs(help_var) + 1;
+for ii=1:sub_n_pc
+    if sub_i_profs(ii) ~= help_var
+        help_var = sub_i_profs(ii);
     end
+    n_pc_profs(help_var - first_prof + 1) = n_pc_profs(help_var - first_prof + 1) + 1;
 end
 
-max_n_pc_profs = max(n_pc_profs);
 
-% NOTE: the first and the last element of n_pc_profs is discarded because
-% they're often small and hence incompatible
-n_points = round(mean(n_pc_profs(2:end-1))*0.49); % number of points taken
-% into consideration
-ix_of_interest = zeros(n_profs, 2); % preallocation of the indices of interest
-grad_z_th = 0.01; % threshold for the gradient of z
-n_i_th = 200; % threshold for the number of indices in a sequence
-start_i = n_pc_profs(1) + 1; % start index for Xyzti, for iterations in the loop
-range_profs = 2:n_profs-1;
-
-for i=range_profs
-    end_i = start_i - 1 + n_pc_profs(i); % end index for Xyzti (for iterations
-    % in the loop)
-    try
-        grad_z = gradient(Xyzti(start_i:end_i, 3));
-        
-        % finds all the indices of grad_z (i.e. indices of z) where its
-        % value is below the threshold
-        ix = find(abs(grad_z(1:end)) < grad_z_th, max_n_pc_profs);
-        
-        % finds all the starting indices of the sequences in ix in which the
-        % values increment exactly by 1, at least n_i_th times
-        ix2 = find(conv(double(diff(ix)==1), ones(1,n_i_th-1), 'valid')==n_i_th-1);
-        
-        first_i = ix(ix2(1))+30; % +30 for adjustment
-        
-        ix_of_interest(i, :) = [start_i + first_i, start_i + first_i + n_points - 1];
-        
-    catch
-    end
-    start_i = end_i + 1;
-end
-
+range_profs = 2:sub_n_profs-1;
 
 
 % classification parameters
@@ -112,28 +78,18 @@ end
 % grad_z_th = 0.0013997;
 % d_th = 3.49;
 
-% monte carlo 2
-i_th = 1647.613;
-grad_z_th = 0.00042294;
-d_th = 3.508;
+i_th_hole = 1647.613;
+grad_z_th_hole = 0.00042294;
+d_th_hole = 3.508;
 
-% monte carlo 3
-% i_th = 1981.8676;
-% grad_z_th = 0.0023502;
-% d_th = 4.7503;
+i_th_crack = 3000;
+grad_z_th_crack = 0.005;
+d_th_crack = 1.5;
 
-% range_profs2 = range_profs(2:end); 
-
+n_pc_profs_cumsum = cumsum(n_pc_profs);
 
 for i = range_profs
-    ix1 = ix_of_interest(i,1);
-    ix2 = ix_of_interest(i,2);
-    % check for
-    %   - low intensity?
-    %   - difference in z-coordinate
-    %   - distance in x-y-plane
-    %     prof1_road = Xyzti(ix_of_interest(i_prof-1,1):ix_of_interest(i_prof-1,2), :);
-    prof_road = Xyzti(ix1:ix2, :);
+    prof_road = sub_Xyzti(logical(i-1+first_prof==sub_i_profs), :);
     grad_z = gradient(prof_road(:, 3));
     l_prof = length(prof_road(:, 1));
     for ii = 2:l_prof-1
@@ -142,29 +98,37 @@ for i = range_profs
         dist2 = sqrt( (prof_road(ii, 1) - prof_road(ii+1, 1))^2 + ...
             (prof_road(ii, 2) - prof_road(ii+1, 2))^2);
         dist_frac = dist1 / dist2;
-        isDefect_d = dist_frac > d_th || dist_frac < 1/d_th;
+        is_hole_d = max(dist_frac, 1/dist_frac) > d_th_hole;
+        is_crack_d = max(dist_frac, 1/dist_frac) > d_th_crack;
         
         intensity = prof_road(ii, 5);
-        isDefect_i = intensity < i_th;
+        is_hole_i = intensity < i_th_hole;
+        is_crack_i = intensity < i_th_crack;
         
         abs_grad_z = abs(grad_z(ii));
-        isDefect_grad_z = abs_grad_z > grad_z_th;
+        is_hole_grad_z = abs_grad_z > grad_z_th_hole;
+        is_crack_grad_z = abs_grad_z > grad_z_th_crack;
         
-        isDefect = isDefect_d && isDefect_i && isDefect_grad_z;
+        is_hole = is_hole_d && is_hole_i && is_hole_grad_z;
+        is_crack = is_crack_d && is_crack_i && is_crack_grad_z;
         
-        if isDefect
-            index = ix1 - 1 + ii;
+        is_defect = is_hole || is_crack;
+        
+        if is_defect
+            index = n_pc_profs_cumsum(i - 1) + ii;
             li_1(index) = 1;
         end
     end
 end
 
-li_1_indices = find(li_1 == 1, n_pc);
+% neighbourhood analysis
+li_1_indices = find(li_1 == 1, sub_n_pc);
 neighbouring_indices = find(diff(li_1_indices) == 1, length(li_1_indices));
 
-li = zeros(n_pc, 1);
+li = zeros(sub_n_pc, 1);
 li(li_1_indices(neighbouring_indices)) = 1;
 li(li_1_indices(neighbouring_indices) + 1) = 1;
+
 
 
 % for i=range_profs
