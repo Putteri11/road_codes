@@ -118,8 +118,36 @@ fscatter3(sub_pc(li_3, 1), sub_pc(li_3, 2), sub_pc(li_3, 3), sub_pc(li_3, 5), cm
 
 %%
 ticID = tic;
+n_points = round(mean(counts)*0.49);
+% sub_pc = zeros((n_profs-2) * n_points, 5);
+ix_of_interest = zeros(n_profs, 2);
+grad_z_th = 0.01;
+n_i_th = 200;
+start_i = counts(1) + 1;
+dummy = 0;
 
-[sub_pc, sub_i_profs] = f_find_road_raw(Xyzti, ins_prof_pc);
+for i=2:n_profs-1
+    end_i = start_i - 1 + counts(i);
+    %     try
+    grad_z = gradient(Xyzti(start_i:end_i, 3));
+    ix = find(abs(grad_z(1:end)) < grad_z_th, 10000);
+    ix2 = find(conv(double(diff(ix)==1), ones(1,n_i_th-1), 'valid')==n_i_th-1);
+    first_i = ix(ix2(1))+30;
+    sub_pc( ((i - 2) * n_points + 1):((i - 1) * n_points) , : ) = ...
+        Xyzti(first_i:first_i + n_points - 1, :);
+    ix_of_interest(i, :) = [start_i + first_i, start_i + first_i + n_points - 1];
+    dummy = dummy + 1;
+    %     catch
+    %     end
+    start_i = end_i + 1;
+end
+
+if dummy == n_profs - 2
+    disp('all points gotten');
+else
+    sub_pc = sub_pc(1:dummy, :);
+    ix_of_interest = ix_of_interest(1:dummy, :);
+end
 
 n_skip = 10;
 

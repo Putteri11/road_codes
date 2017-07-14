@@ -219,23 +219,12 @@ disp(['Profile retrieval: ', num2str(t_elapsed_profRetr), ' seconds.'])
 % number of profiles
 n_profs = max(ins_prof_pc);
 
-%% Testing f_find_cracks_and_holes
+%% Testing f_find_cracks_and_holes (1/2)
 
-ticID = tic;
-li = f_find_cracks_and_holes(Xyzti, ins_prof_pc);
-t_elapsed_profRetr = toc(ticID);
-disp(['Defect retrieval: ', num2str(t_elapsed_profRetr), ' seconds.'])
-
-n_skip = 10;
-ind_fig = ind_fig + 1;
-f_initFig(ind_fig, 'k')
-fscatter3_edit_Joona(Xyzti(1:n_skip:end, 1), Xyzti(1:n_skip:end, 2), Xyzti(1:n_skip:end, 3), Xyzti(1:n_skip:end, 5), cmap);
-plot3(Xyzti(logical(li), 1), Xyzti(logical(li), 2), Xyzti(logical(li), 3), 'wo', 'linewidth', 1, 'markersize', 6);
-
-%% Testing f_find_cracks_and_holes2 (1/2)
-
+tic
 [li_1, pc_1] = Carve_Several_2D_Objects_edit_Joona(Xyzti(1:10:end, 1:2), 3); % haetaan alueet harvemmasta pilvestä
 li_2 = logical(Carve_Several_2D_Objects(Xyzti(:, 1:2), pc_1)); % haetaan alueissa olevat pisteet koko pilvestä
+toc
 
 %% (2/2)
 
@@ -243,7 +232,7 @@ sub_pc = Xyzti(li_2, :);
 sub_i_profs = ins_prof_pc(li_2);
 
 ticID = tic;
-li = f_find_cracks_and_holes2(sub_pc, sub_i_profs);
+li = f_find_cracks_and_holes(sub_pc, sub_i_profs);
 t_elapsed_profRetr = toc(ticID);
 disp(['Defect retrieval: ', num2str(t_elapsed_profRetr), ' seconds.'])
 
@@ -262,6 +251,22 @@ end
 xlabel('x');
 ylabel('y');
 zlabel('z');
+
+%% Testing f_find_cracks_and_holes on the whole road (raw)
+
+ticID = tic;
+
+[sub_pc, sub_i_profs] = f_find_road_raw(Xyzti, ins_prof_pc);
+
+li = f_find_cracks_and_holes(sub_pc, sub_i_profs);
+t_elapsed_profRetr = toc(ticID);
+disp(['Defect retrieval: ', num2str(t_elapsed_profRetr), ' seconds.'])
+
+n_skip = 10;
+ind_fig = ind_fig + 1;
+f_initFig(ind_fig, 'k')
+fscatter3_edit_Joona(Xyzti(1:n_skip:end, 1), Xyzti(1:n_skip:end, 2), Xyzti(1:n_skip:end, 3), Xyzti(1:n_skip:end, 5), cmap);
+plot3(sub_pc(logical(li), 1), sub_pc(logical(li), 2), sub_pc(logical(li), 3), 'wo', 'linewidth', 1, 'markersize', 6);
 
 %% Plot point cloud and profile stuff
 
