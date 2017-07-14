@@ -1,4 +1,4 @@
-function [ li ] = f_find_cracks( input_args )
+function [ li ] = f_find_cracks_and_holes( Xyzti, ins_prof_pc )
 %f_find_cracks_and_holes finds the cracks and holes of a laser scanned road
 % point cloud.
 %   Input:
@@ -11,6 +11,8 @@ function [ li ] = f_find_cracks( input_args )
 %               z  is the z-coordinate of the point,
 %               t  is the time stamp of the point, and
 %               i  is the intensity of the point.
+%           Note: Xyzti is assumed to contain only the points classified 
+%           as points in the road in the original point cloud.
 %       - ins_prof_pc (n_pc x 1):
 %           Indices of the profiles for the point cloud Xyzti, i.e.
 %           indicates in which profile each of the points belongs, gotten
@@ -26,29 +28,12 @@ function [ li ] = f_find_cracks( input_args )
 %       - At the moment, ...
 %
 %   TODO (delete this):
-%       - Extract road from pc (manually)
-%       - Detect holes/hole edges:
-%           - missing points
-%           - low intensity?
-%           - difference in z-coordinate
-%           - distance in x-y-plane
-%       - Label POIs with a double 1
-%       - Document
-%
-%   Ideas (delete this):
-%       - perhaps use machine learning to classify defects?
-%           - manually label the POIs
-%           - use a simple classifier
-%           - would require quite a lot of data in order to work well
-%       - test with both only the road, and the whole pc
-%       - In a loop, remember the previous values of a profile, and do
-%       classification based on them.
-%           - try to match previous points as closely as possible.
 %
 
 
 n_pc = length(Xyzti(:,1)); % number of points in point cloud
-li_1 = zeros(n_pc, 1); % output preallocation (li="logical index")
+li_cracks = zeros(n_pc, 1); % output preallocation 
+li_holes = zeros(n_pc, 1); % output preallocation 
 first_prof = ins_prof_pc(1);
 n_profs = max(ins_prof_pc) - first_prof + 1; % number of profiles
 
@@ -112,24 +97,19 @@ for i = range_profs
         is_hole = is_hole_d && is_hole_i && is_hole_grad_z;
         is_crack = is_crack_d && is_crack_i && is_crack_grad_z;
         
-        is_defect = is_hole || is_crack;
-        
-        if is_defect
+        if is_hole
             index = n_pc_profs_cumsum(i - 1) + ii;
-            li_1(index) = 1;
+            li_holes(index) = 1;
+        end
+        if is_crack
+            index = n_pc_profs_cumsum(i - 1) + ii;
+            li_cracks(index) = 1;
         end
     end
 end
 
 % neighbourhood analysis
-li_1_indices = find(li_1 == 1, n_pc);
-neighbouring_indices = find(diff(li_1_indices) == 1, length(li_1_indices));
-
-li = zeros(n_pc, 1);
-li(li_1_indices(neighbouring_indices)) = 1;
-li(li_1_indices(neighbouring_indices) + 1) = 1;
-
-% li = li_1;
+li = double(f_find_neigh_cracks(Xyzti, ins_prof_pc,);
 
 
 

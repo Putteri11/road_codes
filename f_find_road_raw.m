@@ -15,7 +15,7 @@ for ii=1:n_pc
     n_pc_profs(help_var - first_prof + 1) = n_pc_profs(help_var - first_prof + 1) + 1;
 end
 
-n_points = round(mean(n_pc_profs)*0.49);
+n_points = round(mean(n_pc_profs)*0.48);
 li = zeros(n_pc, 1);
 grad_z_th = 0.01;
 n_i_th = 200;

@@ -21,7 +21,6 @@ sub_n_profs = max(sub_i_profs) - sub_i_profs(1) + 1;
 % Dimension of the point cloud
 d = 2;
 
-% number of points in the point cloud
 indices = 1:sub_n_pc;
 sub_pc_w_i = [sub_pc, (indices)'];
 

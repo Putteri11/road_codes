@@ -1,4 +1,4 @@
-function [ li ] = f_find_cracks_and_holes( Xyzti, ins_prof_pc )
+function [ li ] = f_find_cracks_and_holes( sub_pc, sub_i_profs )
 %f_find_cracks_and_holes finds the cracks and holes of a laser scanned road
 % point cloud.
 %   Input:
@@ -11,7 +11,8 @@ function [ li ] = f_find_cracks_and_holes( Xyzti, ins_prof_pc )
 %               z  is the z-coordinate of the point,
 %               t  is the time stamp of the point, and
 %               i  is the intensity of the point.
-%           Note: the point cloud is assumed to 
+%           Note: Xyzti is assumed to contain only the points classified 
+%           as points in the road in the original point cloud.
 %       - ins_prof_pc (n_pc x 1):
 %           Indices of the profiles for the point cloud Xyzti, i.e.
 %           indicates in which profile each of the points belongs, gotten
@@ -27,31 +28,14 @@ function [ li ] = f_find_cracks_and_holes( Xyzti, ins_prof_pc )
 %       - At the moment, ...
 %
 %   TODO (delete this):
-%       - Extract road from pc (manually)
-%       - Detect holes/hole edges:
-%           - missing points
-%           - low intensity?
-%           - difference in z-coordinate
-%           - distance in x-y-plane
-%       - Label POIs with a double 1
-%       - Document
-%
-%   Ideas (delete this):
-%       - perhaps use machine learning to classify defects?
-%           - manually label the POIs
-%           - use a simple classifier
-%           - would require quite a lot of data in order to work well
-%       - test with both only the road, and the whole pc
-%       - In a loop, remember the previous values of a profile, and do
-%       classification based on them.
-%           - try to match previous points as closely as possible.
 %
 
 
-n_pc = length(Xyzti(:,1)); % number of points in point cloud
-li_1 = zeros(n_pc, 1); % output preallocation (li="logical index")
-first_prof = ins_prof_pc(1);
-n_profs = max(ins_prof_pc) - first_prof + 1; % number of profiles
+n_pc = length(sub_pc(:,1)); % number of points in point cloud
+li_cracks = zeros(n_pc, 1); % output preallocation 
+li_holes = zeros(n_pc, 1); % output preallocation 
+first_prof = sub_i_profs(1);
+n_profs = max(sub_i_profs) - first_prof + 1; % number of profiles
 
 n_pc_profs = zeros(n_profs, 1); % number of points in all the profiles,
 % preallocation.
@@ -59,8 +43,8 @@ help_var = first_prof; % a helper variable
 
 % constructing n_pc_profs (fast)
 for ii=1:n_pc
-    if ins_prof_pc(ii) ~= help_var
-        help_var = ins_prof_pc(ii);
+    if sub_i_profs(ii) ~= help_var
+        help_var = sub_i_profs(ii);
     end
     n_pc_profs(help_var - first_prof + 1) = n_pc_profs(help_var - first_prof + 1) + 1;
 end
@@ -90,7 +74,7 @@ d_th_crack = 1.5;
 n_pc_profs_cumsum = cumsum(n_pc_profs);
 
 for i = range_profs
-    prof_road = Xyzti(logical(i-1+first_prof==ins_prof_pc), :);
+    prof_road = sub_pc(logical(i-1+first_prof==sub_i_profs), :);
     grad_z = gradient(prof_road(:, 3));
     l_prof = length(prof_road(:, 1));
     for ii = 2:l_prof-1
@@ -113,24 +97,20 @@ for i = range_profs
         is_hole = is_hole_d && is_hole_i && is_hole_grad_z;
         is_crack = is_crack_d && is_crack_i && is_crack_grad_z;
         
-        is_defect = is_hole || is_crack;
-        
-        if is_defect
+        if is_hole
             index = n_pc_profs_cumsum(i - 1) + ii;
-            li_1(index) = 1;
+            li_holes(index) = 1;
+        end
+        if is_crack
+            index = n_pc_profs_cumsum(i - 1) + ii;
+            li_cracks(index) = 1;
         end
     end
 end
 
 % neighbourhood analysis
-li_1_indices = find(li_1 == 1, n_pc);
-neighbouring_indices = find(diff(li_1_indices) == 1, length(li_1_indices));
-
-li = zeros(n_pc, 1);
-li(li_1_indices(neighbouring_indices)) = 1;
-li(li_1_indices(neighbouring_indices) + 1) = 1;
-
-% li = li_1;
+li = double(f_find_neigh_cracks(sub_pc, sub_i_profs, li_cracks) | ...
+        f_find_neigh_holes(sub_pc, sub_i_profs, li_holes));
 
 
 
