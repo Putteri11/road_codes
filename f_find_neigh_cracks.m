@@ -1,4 +1,4 @@
-function [ li ] = f_find_neigh_cracks( sub_pc, sub_i_profs, li_cracks )
+function [ li ] = f_find_neigh_cracks( sub_pc, li_cracks )
 %Description...
 %   
 
@@ -17,7 +17,7 @@ li_1(li_cracks_indices(neighbouring_indices) + 1) = 1;
 d = 2;
 
 % Radius of the local neighbourhood
-rn = 0.15; % (metres) 
+rn = 0.2; % (metres) 
 
 % query points 
 Q = sub_pc(logical(li_1), 1:2);
@@ -30,7 +30,7 @@ ns = createns(sub_pc(:, 1:d));
 ins_neigh = rangesearch(ns, Q, rn);
 
 li_2 = zeros(n_pc, 1);
-n_points_th = 6;
+n_points_th = 8;
 
 for i_q = q_indices
     if (sum(li_1(ins_neigh{i_q})) > n_points_th) && ...

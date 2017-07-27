@@ -65,11 +65,11 @@ range_profs = 2:n_profs-1;
 
 i_th_hole = 1647.613;
 grad_z_th_hole = 0.00042294;
-d_th_hole = 3.508;
+d_th_hole = 3.208;
 
 i_th_crack = 3000;
-grad_z_th_crack = 0.005;
-d_th_crack = 1.5;
+grad_z_th_crack = 0.0045;
+d_th_crack = 1.4;
 
 n_pc_profs_cumsum = cumsum(n_pc_profs);
 
@@ -109,8 +109,8 @@ for i = range_profs
 end
 
 % neighbourhood analysis
-li = double(f_find_neigh_cracks(sub_pc, sub_i_profs, li_cracks) | ...
-        f_find_neigh_holes(sub_pc, sub_i_profs, li_holes));
+li = double(f_find_neigh_cracks(sub_pc, li_cracks) | ...
+        f_find_neigh_holes(sub_pc, li_holes));
 
 
 

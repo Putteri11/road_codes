@@ -15,7 +15,7 @@ for ii=1:n_pc
     n_pc_profs(help_var - first_prof + 1) = n_pc_profs(help_var - first_prof + 1) + 1;
 end
 
-n_points = round(mean(n_pc_profs)*0.48);
+n_points = round(mean(n_pc_profs)*0.43);
 li = zeros(n_pc, 1);
 grad_z_th = 0.01;
 n_i_th = 200;
@@ -26,7 +26,7 @@ for i=2:n_profs-1
     grad_z = gradient(Xyzti(start_i:end_i, 3));
     ix = find(abs(grad_z(1:end)) < grad_z_th, 10000);
     ix2 = find(conv(double(diff(ix)==1), ones(1,n_i_th-1), 'valid')==n_i_th-1);
-    first_i = ix(ix2(1))+30;
+    first_i = ix(ix2(1))+60;
     ix_range = start_i + first_i:start_i + first_i + n_points - 1;
     li(ix_range) = 1;
     start_i = end_i + 1;

@@ -4,6 +4,8 @@ clear
 clc
 close all
 
+addpath('C:\Users\jsa\Documents\MATLAB\tieymparistonMallinnusKoodeja','-end');
+
 %% Parameters etc. 
 
 % plotting stuff
@@ -91,7 +93,7 @@ fname_pc = 'C:\Users\jsa\Desktop\04_EXPORT\Nikkila\161124_162516_VUX-1HA.las'; %
 t_elapsed_loadPointCloud = toc(ticID);
 disp(['Load point cloud ...', fname_pc(end-40:end), ': ', num2str(t_elapsed_loadPointCloud), ' seconds.'])
 
-%% Load trajectory
+%% Load the whole trajectory
 
 % Column indices of the trajectory matrix
 ci_Traj_x = 16; % x-coordinates (Northing)
@@ -110,7 +112,7 @@ ci_Traj_t = 2; % time stamps (GPS time)
 
 
 Traj = load('C:\Users\jsa\Desktop\04_EXPORT\Nikkila\trajektori_02_FULL\SP_24112016_LIVI.mat'); % Nikkila
-Traj = Traj.Traj(1:5e+5, :); % take the correct driving direction
+Traj = Traj.Traj; 
 
 %% Organise point cloud into an (nx5) matrix
 
@@ -155,12 +157,12 @@ end
 
 %% Take only a subset of points for testing
 
-% Take n_first_subset first points
+% Take n_subset first points
 % start = 1;
-% n_first_subset = size( Xyzti, 1 ); % take all
+% n_subset = size( Xyzti, 1 ); % take all
 start = size( Xyzti, 1 ) / 2;
-n_first_subset = 1e+7;
-subset_range = start:start+n_first_subset-1;
+n_subset = 1e+7;
+subset_range = start:start+n_subset-1;
 
 Xyzti = Xyzti(subset_range, :);
 
@@ -180,26 +182,6 @@ pc.scan_angle_rank = pc.scan_angle_rank(subset_range);
 pc.user_data = pc.user_data(subset_range);
 pc.point_source_ID = pc.point_source_ID(subset_range);
 
-% testing: extracting only the road for later purposes
-% [li_1, pc_1] = Carve_Several_2D_Objects_edit_Joona(Xyzti(1:10:end, 1:2), 1); % haetaan alueet harvemmasta pilvestä
-% li_2 = logical(Carve_Several_2D_Objects(Xyzti(:, 1:2), pc_1)); % haetaan alueissa olevat pisteet koko pilvestä
-% Xyzti = Xyzti(li_2, :);
-% 
-% pc.x = pc.x(li_2);
-% pc.y = pc.y(li_2);
-% pc.z = pc.z(li_2);
-% pc.intensity = pc.intensity(li_2);
-% pc.gps_time = pc.gps_time(li_2);
-% 
-% pc.return_number = pc.return_number(li_2);
-% pc.number_of_returns = pc.number_of_returns(li_2);
-% pc.scan_direction_flag = pc.scan_direction_flag(li_2);
-% pc.edge_of_flight_line = pc.edge_of_flight_line(li_2);
-% pc.classification = pc.classification(li_2);
-% pc.scan_angle_rank = pc.scan_angle_rank(li_2);
-% pc.user_data = pc.user_data(li_2);
-% pc.point_source_ID = pc.point_source_ID(li_2);
-
 % number of points in the point cloud
 n_pc = length(pc.x);
 
@@ -208,6 +190,43 @@ n_pc = length(pc.x);
 
 Traj(:, ci_Traj_t) = Traj(:, ci_Traj_t) - 17; % 17 seconds difference
 
+%% Select subset of the trajectory which overlaps with the point cloud
+
+% This is important if the same area is driven two times. In that case the
+% correct drive has to be selected here
+
+% plot point cloud and whole trajectory 
+ind_fig = ind_fig + 1;
+f_initFig(ind_fig, 'w')
+plot3(Xyzti(:, 1), Xyzti(:, 2), Xyzti(:, 3), '.', 'markersize', 2)
+plot3(Traj(:,ci_Traj_x), Traj(:,ci_Traj_y), Traj(:,ci_Traj_z))
+
+% find overlapping part of the traj automatically
+t_pc_first = Xyzti(1, 4); % time stamp of the first point in the point cloud
+t_pc_last = Xyzti(end, 4); % time stamp of the last point in the point cloud
+t_extra = 2; % (seconds) take some extra trajectory on both sides of the point cloud ??lisää parametriksi inputtiin
+li_Traj_overlapPC = Traj(:, ci_Traj_t) >= t_pc_first - t_extra & Traj(:, ci_Traj_t) <= t_pc_last + t_extra; % li for traj points; true indicates that the point overlaps point cloud
+Traj = Traj(li_Traj_overlapPC, :); % select only overlapping part of the trajectory
+
+% plot the selected part of the trajectory; this should overlap with the
+% point cloud
+plot3(Traj(:,ci_Traj_x), Traj(:,ci_Traj_y), Traj(:,ci_Traj_z), 'linewidth', 2)
+legend('Point cloud', 'Whole trajectory', 'Overlapping part of the trajectory') 
+
+% check time stamps 
+xlim_min = min(Traj(:, ci_Traj_t)) - 1;
+xlim_max = max(Traj(:, ci_Traj_t)) + 1;
+figure
+subplot(2,1,1)
+hold on
+title('point cloud time stamps')
+xlim([xlim_min, xlim_max]) % make sure both subplots have same x lim
+histogram( pc.gps_time )
+subplot(2,1,2)
+hold on
+title('overlapping traj time stamps')
+histogram( Traj(:, ci_Traj_t) )
+xlim([xlim_min, xlim_max]) % make sure both subplots have same x lim
 
 %% Retrieve profiles
 % with all points: Profile retrieval: 928.1594 seconds. (15 min 30 s)
@@ -252,7 +271,7 @@ xlabel('x');
 ylabel('y');
 zlabel('z');
 
-%% Testing f_find_cracks_and_holes on the whole road (raw)
+%% Testing f_find_cracks_and_holes on the whole road (rough)
 
 ticID = tic;
 
@@ -276,7 +295,7 @@ plot3(sub_pc(logical(li), 1), sub_pc(logical(li), 2), sub_pc(logical(li), 3), 'w
 % ind_fig = ind_fig + 1;
 % f_initFig(ind_fig, 'k')
 % n_skip_pc_plot = 10; % plot only every n_skip_pc_plot points
-% plot3(Xyzt(1:n_skip_pc_plot:end, 1), Xyzt(1:n_skip_pc_plot:end, 2), Xyzt(1:n_skip_pc_plot:end, 3), '.', 'markersize', 2, 'color', 0.75*[1 1 1])
+% plot3(Xyzti(1:n_skip_pc_plot:end, 1), Xyzti(1:n_skip_pc_plot:end, 2), Xyzti(1:n_skip_pc_plot:end, 3), '.', 'markersize', 2, 'color', 0.75*[1 1 1])
 % fscatter3(Xyzti(1:n_skip_pc_plot:end, 1), Xyzti(1:n_skip_pc_plot:end, 2), Xyzti(1:n_skip_pc_plot:end, 3), Xyzti(1:n_skip_pc_plot:end, 5), cmap);
 % plot3(Xyzti(ins_pc_profStart, 1), Xyzti(ins_pc_profStart, 2), Xyzti(ins_pc_profStart, 3), 'wx', 'linewidth', 2, 'markersize', 20)
 
