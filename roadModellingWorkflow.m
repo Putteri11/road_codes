@@ -337,11 +337,11 @@ disp(['Marking candidates: ', num2str(t_elapsed_markingCands), ' seconds.'])
 
 %% Plot candidates
 
-% ind_fig = ind_fig + 1;
-% f_initFig(ind_fig, 'k')
-% plot3(Xyzti(RoadMarkingCand_1(:, 1), 1), Xyzti(RoadMarkingCand_1(:, 1), 2), Xyzti(RoadMarkingCand_1(:, 1), 3), 'gx', 'linewidth', 2, 'markersize', 20)
-% plot3(Xyzti(RoadMarkingCand_1(:, 2), 1), Xyzti(RoadMarkingCand_1(:, 2), 2), Xyzti(RoadMarkingCand_1(:, 2), 3), 'go', 'linewidth', 2, 'markersize', 20)
-% fscatter3(pc.x, pc.y, pc.z, pc.intensity, cmap); % point cloud intensity image
+ind_fig = ind_fig + 1;
+f_initFig(ind_fig, 'k')
+plot3(Xyzti(RoadMarkingCand_1(:, 1), 1), Xyzti(RoadMarkingCand_1(:, 1), 2), Xyzti(RoadMarkingCand_1(:, 1), 3), 'gx', 'linewidth', 2, 'markersize', 20)
+plot3(Xyzti(RoadMarkingCand_1(:, 2), 1), Xyzti(RoadMarkingCand_1(:, 2), 2), Xyzti(RoadMarkingCand_1(:, 2), 3), 'go', 'linewidth', 2, 'markersize', 20)
+fscatter3_edit_Joona(pc.x, pc.y, pc.z, pc.intensity, cmap); % point cloud intensity image
 
 %% Grow road markings from candidates
 
@@ -367,13 +367,13 @@ disp(['Marking retrieval: ', num2str(t_elapsed_markingRetr), ' seconds.'])
 
 %% Plot extracted curves
 
-% ind_fig = ind_fig + 1;
-% f_initFig(ind_fig, 'k')
-% fscatter3_edit_Joona(pc.x, pc.y, pc.z, pc.intensity, cmap); % point cloud intensity image
-% for ind_marking = 1 : length(curves_posIntJumps)
-%     ins_pointsOneMarking_pc = curves_posIntJumps{ind_marking}; % indices of the points on the curve
-%     plot3(Xyzti(ins_pointsOneMarking_pc, 1), Xyzti(ins_pointsOneMarking_pc, 2), Xyzti(ins_pointsOneMarking_pc, 3), 'linewidth', 3, 'color', [0.68, 0.92, 1]); % [0.68, 0.92, 1]
-% end
+ind_fig = ind_fig + 1;
+f_initFig(ind_fig, 'k')
+fscatter3_edit_Joona(pc.x, pc.y, pc.z, pc.intensity, cmap); % point cloud intensity image
+for ind_marking = 1 : length(curves_posIntJumps)
+    ins_pointsOneMarking_pc = curves_posIntJumps{ind_marking}; % indices of the points on the curve
+    plot3(Xyzti(ins_pointsOneMarking_pc, 1), Xyzti(ins_pointsOneMarking_pc, 2), Xyzti(ins_pointsOneMarking_pc, 3), 'linewidth', 3, 'color', [0.68, 0.92, 1]); % [0.68, 0.92, 1]
+end
 
 %% Fill gaps on markings  
 
@@ -478,7 +478,7 @@ P_traj2marking = P_traj2marking ./ f_repmat_mtx_fast( norms_rows, 1, size( P_tra
 % Calculate cross product. The signs should tell on which side of the traj
 % the marking is
 crossProd_bms = cross( [P_traj2marking, zeros(n_bms, 1)], ...
-    [Dir_traj(ins_trajPts_closest2marking, :), zeros(n_bms, 1)] );
+    [Dir_traj(ins_trajPts_closest2marking, :), zeros(n_bms, 1)], 2);
 
 % Classify markings as 'left side' or 'right side' of the trajectory
 li_bms_leftSideOfTraj = crossProd_bms(:, 3) <= 0;
@@ -495,20 +495,20 @@ pc.classification(ins_pc_borderMarkings_rightSide) = classLabel_marking_border_r
 
 %% Plot merged border markings 
 
-% % each segment separately
-% 
-% ind_fig = ind_fig + 1;
-% f_initFig(ind_fig, 'w')
-% % plot3(pc.x, pc.y, pc.z, '.', 'color', 0.7*[1 1 1]); % point cloud 
-% segIds_borderMarkingSegs = unique( K_bms(:, 2) ); % segment Ids
-% for ind_mbs = 1 : length(segIds_borderMarkingSegs)
-%     mbs_segId = segIds_borderMarkingSegs(ind_mbs);
-%     ins_pointsOneMarking_pc = K_bms( K_bms(:, 2) == mbs_segId , 1); % indices of the points on the curve
-%     plot3(Xyzti(ins_pointsOneMarking_pc, 1), Xyzti(ins_pointsOneMarking_pc, 2), Xyzti(ins_pointsOneMarking_pc, 3), '.')
-% end
-% 
-% % one selected point on each segment
-% plot3(Xyzti(ins_pc_onePointOnEachMarking, 1), Xyzti(ins_pc_onePointOnEachMarking, 2), Xyzti(ins_pc_onePointOnEachMarking, 3), 'diamond', 'linewidth', 2, 'markersize', 20) 
+% each segment separately
+
+ind_fig = ind_fig + 1;
+f_initFig(ind_fig, 'w')
+% plot3(pc.x, pc.y, pc.z, '.', 'color', 0.7*[1 1 1]); % point cloud 
+segIds_borderMarkingSegs = unique( K_bms(:, 2) ); % segment Ids
+for ind_mbs = 1 : length(segIds_borderMarkingSegs)
+    mbs_segId = segIds_borderMarkingSegs(ind_mbs);
+    ins_pointsOneMarking_pc = K_bms( K_bms(:, 2) == mbs_segId , 1); % indices of the points on the curve
+    plot3(Xyzti(ins_pointsOneMarking_pc, 1), Xyzti(ins_pointsOneMarking_pc, 2), Xyzti(ins_pointsOneMarking_pc, 3), '.')
+end
+
+% one selected point on each segment
+plot3(Xyzti(ins_pc_onePointOnEachMarking, 1), Xyzti(ins_pc_onePointOnEachMarking, 2), Xyzti(ins_pc_onePointOnEachMarking, 3), 'diamond', 'linewidth', 2, 'markersize', 20) 
 
 %% Plot right and left border marking points
 
@@ -555,15 +555,15 @@ pc.classification(K_lsm(:, 1)) = classLabel_marking_laneSeparator;
 
 %% Plot lane separator markings (merged short markings)
 
-% % each segment separately
-% 
-% ind_fig = ind_fig + 1;
-% f_initFig(ind_fig, 'w')
-% for ind_seg = 1 : max( K_lsm(:, 2) )
-%     li_pc_seg = K_lsm( K_lsm(:, 2) == ind_seg, 1 );
-%     plot3(Xyzti(li_pc_seg, 1), Xyzti(li_pc_seg, 2), Xyzti(li_pc_seg, 3), '.')
-% end
-% plot3(Xyzti(1:30:end, 1), Xyzti(1:30:end, 2), Xyzti(1:30:end, 3), '.', 'markersize', 2, 'color', 0.75*[1 1 1])
+% each segment separately
+
+ind_fig = ind_fig + 1;
+f_initFig(ind_fig, 'w')
+for ind_seg = 1 : max( K_lsm(:, 2) )
+    li_pc_seg = K_lsm( K_lsm(:, 2) == ind_seg, 1 );
+    plot3(Xyzti(li_pc_seg, 1), Xyzti(li_pc_seg, 2), Xyzti(li_pc_seg, 3), '.')
+end
+plot3(Xyzti(1:30:end, 1), Xyzti(1:30:end, 2), Xyzti(1:30:end, 3), '.', 'markersize', 2, 'color', 0.75*[1 1 1])
 
 %% LAS file classification 
 
@@ -592,7 +592,7 @@ pc.classification(li_pc_longMarkings) = classLabel_unclassified;
 % plot3(pc.x(li_pc_marking_laneSeparator), pc.y(li_pc_marking_laneSeparator), pc.z(li_pc_marking_laneSeparator), '.')
 % 
 % legend('Left border marking', 'Right border marking', 'Lane separator marking')
-% 
+
 % plot3(pc.x(li_pc_unclassif), pc.y(li_pc_unclassif), pc.z(li_pc_unclassif), '.', 'markersize', 2, 'color', 0.9*[1 1 1])
 
 %% Classify area of traffic lanes profile-wise
@@ -882,7 +882,7 @@ disp(['Search space for road surface edges: ', num2str(t_elapsed_flatPts_sv + t_
 
 %% Save workspace to a mat file 
 
-% save 'E:\Combat_roadModelling_data\wstemp_125641_6a.mat'
+% save 'C:\Users\jsa\Documents\MATLAB\roadCodes\experimental.mat'
 
 
 %% put intensity in the fourth column
