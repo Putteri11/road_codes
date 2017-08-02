@@ -75,9 +75,9 @@ for i=2:sub_n_profs-1
         index = helper(i - 1) + ii;
         
 %         dist1 = sqrt( (prof_road(ii, 1) - prof_road(ii-1, 1))^2 + ...
-%             (prof_road(ii, 2) - prof_road(ii-1, 2))^2);
+%             (prof_road(ii, 2) - prof_road(ii-1, 2))^2 );
 %         dist2 = sqrt( (prof_road(ii, 1) - prof_road(ii+1, 1))^2 + ...
-%             (prof_road(ii, 2) - prof_road(ii+1, 2))^2);
+%             (prof_road(ii, 2) - prof_road(ii+1, 2))^2 );
 %         dist_frac = dist1 / dist2;
 %         isDefect_d = dist_frac > d_th || dist_frac < 1/d_th;
 %         isDefect_d = dist1 > d_th || dist2 > d_th;
@@ -183,36 +183,40 @@ for i_prof=mid_prof-prof_gap:mid_prof+prof_gap
     
     Xyzi_prof = sub_pc(logical(sub_i_profs==i_prof), :);
     
-    % x_prof = Xyzi_prof(:,1);
-    % y_prof = Xyzi_prof(:,2);
+    x_prof = Xyzi_prof(:,1);
+    y_prof = Xyzi_prof(:,2);
     z_prof = Xyzi_prof(:,3);
     I_prof = Xyzi_prof(:,4);
     
 %     close all;
     figure(i_prof-(mid_prof-prof_gap)+1);
     
-    i_max = 5;
     i_min = 5;
+    i_max = i_min+0;
     for i=i_min:i_max
-        movmean_i = movmean(I_prof, i);
+%         movmean_i = movmean(I_prof, i);
         movmean_z = movmean(z_prof, i);
+        movmean_x = movmean(x_prof, i);
+        movmean_y = movmean(y_prof, i);
+        dist = sqrt( diff(movmean_x).^2 + diff(movmean_y).^2 );
+        diff_z = diff(movmean_z);
         
         color_arr = [0 0.5-atan(-(i_max-i_min+1)/8 + (i-i_min)/4)/pi 1];
 %         disp([i, color_arr]);
         subplot(221);
-        plot(movmean_i, '.', 'color', color_arr);
-        title('intensity');
+        plot(dist, '.', 'color', color_arr);
+        title('distance');
         hold on;
         subplot(222);
         plot(movmean_z, '.', 'color', color_arr);
-        title('z');        
+        title('z');
         hold on;
         subplot(223);
-        plot(diff(movmean_i), '.', 'color', color_arr);
-        title('difference in intensity');
+        plot(atan(diff_z./dist)*180/pi, '.', 'color', color_arr);
+        title('angle');
         hold on;
         subplot(224);
-        plot(diff(movmean_z), '.', 'color', color_arr);
+        plot(diff_z, '.', 'color', color_arr);
         title('difference in z');
         hold on;
     end

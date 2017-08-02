@@ -273,9 +273,9 @@ zlabel('z');
 
 %% Testing f_find_cracks_and_holes on the whole road (rough)
 
-ticID = tic;
-
 [sub_pc, sub_i_profs] = f_find_road_raw(Xyzti, ins_prof_pc);
+
+ticID = tic;
 
 li = f_find_cracks_and_holes(sub_pc, sub_i_profs);
 t_elapsed_profRetr = toc(ticID);
