@@ -32,12 +32,11 @@ function [ li ] = f_find_cracks_and_holes( sub_pc, sub_i_profs )
 
 
 n_pc = length(sub_pc(:,1)); % number of points in point cloud
-% li_cracks = zeros(n_pc, 1); % output preallocation 
-li_holes = zeros(n_pc, 1); % output preallocation 
+li_cand = zeros(n_pc, 1); % output preallocation 
 first_prof = sub_i_profs(1);
 n_profs = max(sub_i_profs) - first_prof + 1; % number of profiles
 
-n_pc_profs = zeros(n_profs, 1); % number of points in all the profiles,
+n_pc_profs = zeros(n_profs, 1); % number of points in each of the profiles,
 % preallocation.
 help_var = first_prof; % a helper variable
 
@@ -52,73 +51,53 @@ end
 
 range_profs = 2:n_profs-1;
 
-
-% classification parameters
-% i_th = mean(Xyzti(:,5))/1.3; % threshold for the intensity
-% grad_z_th = 0; % threshold for the difference in the gradient of z
-% d_th = 3; % threshold for the fraction of the distances
-
-% monte carlo 1
-% i_th = 2092.2616;
-% grad_z_th = 0.0013997;
-% d_th = 3.49;
-
-% i_th_hole = 1647.613;
-% grad_z_th_hole = 0.00042294;
-% d_th_hole = 3.208;
-
-% grad_i_th_hole = 250;
-grad_z_th_hole = 0.003;
-% d_th_hole = 3.208;
-% 
-% i_th_crack = 3000;
-% grad_z_th_crack = 0.0045;
-% d_th_crack = 1.4;
+diff_z_th = 0.0025; % large 0.0028 (m); small 0.0023 (m)
+window = 20;
 
 n_pc_profs_cumsum = cumsum(n_pc_profs);
 
 for i = range_profs
     prof_road = sub_pc(logical(i-1+first_prof==sub_i_profs), :);
-    grad_z = gradient(movmean(prof_road(:, 3), 5));
-%     grad_i = gradient(movmean(prof_road(:, 5), 4));
+    diff_z = diff(movmean(prof_road(:, 3), 5));
     l_prof = length(prof_road(:, 1));
+    
+    neg_jump_inds = zeros(l_prof, 1);
+    pos_jump_inds = zeros(l_prof, 1);
+    count = 0;
+    in_window = false;
+    
     for ii = 2:l_prof-1
-        dist1 = sqrt( (prof_road(ii, 1) - prof_road(ii-1, 1))^2 + ...
-            (prof_road(ii, 2) - prof_road(ii-1, 2))^2);
-        dist2 = sqrt( (prof_road(ii, 1) - prof_road(ii+1, 1))^2 + ...
-            (prof_road(ii, 2) - prof_road(ii+1, 2))^2);
-        dist_frac = dist1 / dist2;
-        is_hole_d = max(dist_frac, 1/dist_frac) > d_th_hole;
-%         is_crack_d = max(dist_frac, 1/dist_frac) > d_th_crack;
-        
-%         intensity = prof_road(ii, 5);
-%         is_hole_i = abs(grad_i(ii)) > grad_i_th_hole;
-%         is_crack_i = intensity < i_th_crack;
-        
-        abs_grad_z = abs(grad_z(ii));
-        is_hole_grad_z = abs_grad_z > grad_z_th_hole;
-%         is_crack_grad_z = abs_grad_z > grad_z_th_crack;
-        
-        is_hole = is_hole_grad_z;
-%         is_crack = is_crack_d && is_crack_i && is_crack_grad_z;
-        
-        if is_hole
-            index = n_pc_profs_cumsum(i - 1) + ii;
-            li_holes(index) = 1;
+        index = n_pc_profs_cumsum(i - 1) + ii;
+
+        if diff_z(ii) < -diff_z_th
+            neg_jump_inds(ii) = index;
+            in_window = true;
         end
-%         if is_crack
-%             index = n_pc_profs_cumsum(i - 1) + ii;
-%             li_cracks(index) = 1;
-%         end
+        
+        if in_window && (diff_z(ii) > diff_z_th)
+            pos_jump_inds(ii) = index;
+        end
+
+        if count >= window
+            if any(neg_jump_inds > 0) && any(pos_jump_inds > 0)
+                li_cand(neg_jump_inds(neg_jump_inds > 0)) = true;
+                li_cand(pos_jump_inds(pos_jump_inds > 0)) = true;
+            end
+            % reset state
+            neg_jump_inds = zeros(l_prof, 1);
+            pos_jump_inds = zeros(l_prof, 1);
+            count = 0;
+            in_window = false;
+        end
+        if in_window
+            count = count + 1;
+        end
+
     end
 end
 
 % neighbourhood analysis
-% li = double(f_find_neigh_cracks(sub_pc, li_cracks) | ...
-%         f_find_neigh_holes(sub_pc, li_holes));
-
-li = double(li_holes);
-
-% li = double(f_find_neigh_cracks(sub_pc, li_holes));
+rn = 0.2; % radius
+li = f_neighbourhood_analysis(sub_pc, li_cand, rn);
 
 end

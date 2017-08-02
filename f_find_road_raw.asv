@@ -17,8 +17,8 @@ end
 
 n_points = round(mean(n_pc_profs)*0.43);
 li = zeros(n_pc, 1);
-grad_z_th = 0.005;
-n_i_th = 200;
+grad_z_th = 0.0025;
+n_i_th = 170;
 start_i = n_pc_profs(1) + 1;
 
 for i=2:n_profs-1
