@@ -173,8 +173,8 @@ cumsum_n_pc_profs = cumsum(n_pc_profs);
 
 prof_gap = 15;
 % mid_prof = 1800;
-% mid_prof = 2302; %hole
-mid_prof = 3660; %crack
+mid_prof = 2302; %hole
+% mid_prof = 3660; %crack
 % i_prof = mid_prof;
 %%
 close all;
@@ -212,8 +212,10 @@ for i_prof=mid_prof-prof_gap:mid_prof+prof_gap
         title('z');
         hold on;
         subplot(223);
-        plot(atan(diff_z./dist)*180/pi, '.', 'color', color_arr);
-        title('angle');
+%         plot(atan(diff_z./dist)*180/pi, '.', 'color', color_arr);
+%         title('angle');
+        plot(diff(dist), '.', 'color', color_arr);
+        title('difference in distance');
         hold on;
         subplot(224);
         plot(diff_z, '.', 'color', color_arr);

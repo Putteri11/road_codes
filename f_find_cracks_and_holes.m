@@ -51,7 +51,7 @@ end
 
 range_profs = 2:n_profs-1;
 
-diff_z_th = 0.0025; % large 0.0028 (m); small 0.0023 (m)
+diff_z_th = 0.0023; % large 0.0028 (m); small 0.0023 (m)
 window = 20;
 
 n_pc_profs_cumsum = cumsum(n_pc_profs);
@@ -97,7 +97,7 @@ for i = range_profs
 end
 
 % neighbourhood analysis
-rn = 0.2; % radius
-li = f_neighbourhood_analysis(sub_pc, li_cand, rn);
+rn = 0.06; % radius
+li = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_cand, rn);
 
 end
