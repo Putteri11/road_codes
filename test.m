@@ -1,14 +1,17 @@
 
 ticID = tic;
 n_pc_profs = zeros(n_profs, 1);
+first_prof = ins_prof_pc(1);
 a = ins_prof_pc(1);
+% a = sub_i_profs(1);
 
 for ii=1:n_pc
     if ins_prof_pc(ii) ~= a
         a = ins_prof_pc(ii);
     end
-    n_pc_profs(a) = n_pc_profs(a) + 1;
+    n_pc_profs(a - first_prof + 1) = n_pc_profs(a - first_prof + 1) + 1;
 end % constructing counts
+n_pc_profs = n_pc_profs(n_pc_profs>0);
 
 plot(n_pc_profs, 'b.')
 
@@ -171,10 +174,10 @@ cumsum_n_pc_profs = cumsum(n_pc_profs);
 
 [sub_pc, sub_i_profs] = f_find_road_raw(Xyzi, ins_prof_pc);
 
-prof_gap = 15;
+prof_gap = 30;
 % mid_prof = 1800;
-mid_prof = 2302; %hole
-% mid_prof = 3660; %crack
+% mid_prof = 2302; %hole
+mid_prof = 3660; %crack
 % i_prof = mid_prof;
 %%
 close all;

@@ -26,10 +26,9 @@ n_pc_profs_cumsum = cumsum(n_pc_profs);
 sub_sub_i_profs = sub_i_profs(n_pc_range);
 
 % min_dist = Inf;
-dist_arr = zeros(n_pc_range(end), 1);
-prof_range = min(sub_sub_i_profs):max(sub_sub_i_profs)-1;
+min_dist = zeros(n_pc_range(end), 1);
 
-for i_prof = prof_range
+for i_prof = min(sub_sub_i_profs):max(sub_sub_i_profs)-1
     src_pts = sub_sub_pc(sub_sub_i_profs==i_prof, 1:3);
     dst_pts = sub_sub_pc(sub_sub_i_profs==i_prof+1, 1:3);
     
@@ -61,25 +60,21 @@ for i_prof = prof_range
             min_cand = min([d_1, d_2, d_3]);
         end
         
-%         if (min_cand < min_dist)
+        if (min_cand < min_dist)
+            min_dist
 %             min_dist = min_cand;
-%         end
-        dist_arr(n_pc_profs_cumsum(i_prof-prof_range(1)+1) + i_src) = min_cand;
+        end
     end
 end
 
-dist_arr = dist_arr(dist_arr>0);
-dist_arr = dist_arr(abs(diff(dist_arr))<0.02);
-dist = mean(dist_arr);
-
-
 toc
-% disp(dist);
+disp(min_dist);
 
-% plot(dist_arr, 'b.');
+% plot(min_dist, 'b.');
 
-f_initFig(1, 'w');
-fscatter3_edit_Joona(sub_pc(n_pc_range, 1), sub_pc(n_pc_range, 2), sub_pc(n_pc_range, 3), sub_pc(n_pc_range, 5), cmap);
+% plot3(src_pts(:,1), src_pts(:,2), src_pts(:,3), 'b.');
+% f_initFig(1, 'w');
+% fscatter3_edit_Joona(sub_pc(n_pc_range, 1), sub_pc(n_pc_range, 2), sub_pc(n_pc_range, 3), sub_pc(n_pc_range, 5), cmap);
 
 
 %%
@@ -87,7 +82,7 @@ fscatter3_edit_Joona(sub_pc(n_pc_range, 1), sub_pc(n_pc_range, 2), sub_pc(n_pc_r
 d = 3;
 
 % Radius of the local neighbourhood
-rn = dist + 0.01; % (metres) 
+rn = min_dist + 0.01; % (metres) 
 
 % query points 
 

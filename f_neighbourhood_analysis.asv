@@ -1,5 +1,5 @@
 function [ li ] = f_neighbourhood_analysis( sub_pc, sub_i_profs, ...
-    li_cand, rn, n_points_th )
+    li_cand, rn, n_points_th,  )
 %Description...
 %
 
@@ -48,9 +48,7 @@ for i_q = q_indices
             end
         otherwise
             if length(search_profs_unique) ~= 1
-                if sum(li_cand(ins_neigh{i_q})) > n_points_th
-                    li_2(ins_neigh{i_q}) = true;
-                end
+                
             end
     end
 end
