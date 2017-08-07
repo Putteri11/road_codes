@@ -58,7 +58,7 @@ diff_z_th2 = 0.0018;
 window = 20;
 % d_th = 0.028;
 
-test_li = false(sub_n_pc, 1);
+li_cand = false(sub_n_pc, 1);
 helper = cumsum(sub_counts);
 
 for i=2:sub_n_profs-1
@@ -70,8 +70,12 @@ for i=2:sub_n_profs-1
     
     neg_jump_inds = zeros(l_prof, 1);
     pos_jump_inds = zeros(l_prof, 1);
-    count = 0;
-    in_window = false;
+    neg_found = false;
+    pos_found = false;
+    on_bottom = false;
+    on_top = false;
+%     count = 0;
+%     in_window = false;
     
     for ii = 2:l_prof-1
         index = helper(i - 1) + ii;
@@ -92,33 +96,44 @@ for i=2:sub_n_profs-1
 
 %         isDefect = isDefect_grad_z1 || (isDefect_grad_z2 && isDefect_i);
 
-        if diff_z(ii) < -diff_z_th
+        if (diff_z(ii) < -diff_z_th) 
+            if on_bottom
+                neg_jump_inds = zeros(l_prof, 1);
+                on_bottom = false;
+            end
             neg_jump_inds(ii) = index;
-            in_window = true;
+            neg_found = true;
+        elseif (diff_z(ii) > diff_z_th)
+            if neg_found
+                pos_jump_inds(ii) = index;
+                pos_found = true;
+            end
+        else
+            if neg_found
+                on_bottom = true;
+            elseif pos_found
+                on_top = true;
+            end
         end
         
-        if in_window && (diff_z(ii) > diff_z_th)
-            pos_jump_inds(ii) = index;
-        end
-
-        if count >= window
+        if on_top
             if any(neg_jump_inds > 0) && any(pos_jump_inds > 0)
-                test_li(neg_jump_inds(neg_jump_inds > 0)) = true;
-                test_li(pos_jump_inds(pos_jump_inds > 0)) = true;
+                li_cand(neg_jump_inds(neg_jump_inds > 0)) = true;
+                li_cand(pos_jump_inds(pos_jump_inds > 0)) = true;
             end
             neg_jump_inds = zeros(l_prof, 1);
             pos_jump_inds = zeros(l_prof, 1);
-            count = 0;
-            in_window = false;
+            neg_found = false;
+            pos_found = false;
+            on_bottom = false;
+            on_top = false;
         end
-        if in_window
-            count = count + 1;
-        end
+        
     end
 end
 
 
-% test_li_indices = find(test_li == 1, sub_n_pc);
+% test_li_indices = find(li_cand == 1, sub_n_pc);
 % neighbouring_indices = find(diff(test_li_indices) == 1, length(test_li_indices));
 % 
 % out_li = zeros(sub_n_pc, 1);
@@ -127,10 +142,10 @@ end
 % 
 % out_li = logical(out_li);
 
-rn = 0.2;
-n_points_th = 1;
-out_li = f_neighbourhood_analysis(sub_pc, sub_i_profs, test_li, rn, n_points_th);
-% out_li = test_li;
+% rn = 0.2;
+% n_points_th = 1;
+% out_li = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_cand, rn, n_points_th);
+out_li = li_cand;
 
 toc
 
