@@ -1,22 +1,11 @@
-function [ li ] = f_neighbourhood_analysis( sub_pc, sub_i_profs, ...
-    li_cand, rn, n_points_th )
-%Description...
-%
+function [ li ] = f_neighbourhood_analysis( sub_pc, sub_i_profs, li_cand, ...
+    ins_neigh, n_points_th )
+%UNTITLED Summary of this function goes here
+%   Detailed explanation goes here
 
-n_pc = length(sub_pc);
+n_pc = length(sub_pc(:,1));
 
-% Dimension of the point cloud
-d = 2;
-
-% query points
-Q = sub_pc(logical(li_cand), 1:2);
-q_indices = 1:length(Q(:,1));
-
-% create kdtree seach object
-ns = createns(sub_pc(:, 1:d));
-
-% Find points in the neighbourhood
-ins_neigh = rangesearch(ns, Q, rn);
+q_indices = 1:sum(li_cand);
 
 li_2 = false(n_pc, 1);
 
@@ -30,7 +19,7 @@ for i_q = q_indices
             other_profs = search_profs_unique([1,3]);
             inds1 = ins_neigh{i_q}(search_profs==other_profs(1));
             inds2 = ins_neigh{i_q}(search_profs==other_profs(2));
-            if (sum(li_cand(inds1)) > n_points_th) || (sum(li_cand(inds2)) > n_points_th)
+            if (sum(li_cand(inds1)) > n_points_th) && (sum(li_cand(inds2)) >= n_points_th)
                 inds = ins_neigh{i_q}(search_profs~=q_prof);
                 li_2(inds) = true;
             end
@@ -48,7 +37,7 @@ for i_q = q_indices
             end
         otherwise
             if length(search_profs_unique) ~= 1
-                if sum(li_cand(ins_neigh{i_q})) > n_points_th
+                if sum(li_cand(ins_neigh{i_q})) >= n_points_th
                     li_2(ins_neigh{i_q}) = true;
                 end
             end
@@ -58,3 +47,4 @@ end
 li = li_cand & li_2;
 
 end
+

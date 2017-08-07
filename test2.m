@@ -18,6 +18,17 @@ sub_n_pc = length(sub_pc);
 sub_i_profs = ins_prof_pc(li_2);
 sub_n_profs = max(sub_i_profs) - sub_i_profs(1) + 1;
 
+n_pc_profs = zeros(sub_n_profs, 1);
+first_prof = sub_i_profs(1);
+help_var = first_prof;
+
+for ii=1:sub_n_pc
+    if sub_i_profs(ii) ~= help_var
+        help_var = sub_i_profs(ii);
+    end
+    n_pc_profs(help_var - first_prof + 1) = n_pc_profs(help_var - first_prof + 1) + 1;
+end 
+
 tic
 
 n_pc_range = 1:round(mean(n_pc_profs)*2);
@@ -58,7 +69,7 @@ for i_prof = prof_range
         end    
         
         if flag == 0
-            min_cand = min([d_1, d_2, d_3]);
+            min_cand = min([d_1, d_3]);
         end
         
 %         if (min_cand < min_dist)
@@ -69,7 +80,8 @@ for i_prof = prof_range
 end
 
 dist_arr = dist_arr(dist_arr>0);
-dist_arr = dist_arr(abs(diff(dist_arr))<0.02);
+% plot(diff(dist_arr), 'b.');
+dist_arr = dist_arr(abs(diff(dist_arr))<0.01);
 dist = mean(dist_arr);
 
 
@@ -78,8 +90,8 @@ toc
 
 % plot(dist_arr, 'b.');
 
-f_initFig(1, 'w');
-fscatter3_edit_Joona(sub_pc(n_pc_range, 1), sub_pc(n_pc_range, 2), sub_pc(n_pc_range, 3), sub_pc(n_pc_range, 5), cmap);
+% f_initFig(1, 'w');
+% fscatter3_edit_Joona(sub_pc(n_pc_range, 1), sub_pc(n_pc_range, 2), sub_pc(n_pc_range, 3), sub_pc(n_pc_range, 5), cmap);
 
 
 %%
@@ -87,7 +99,7 @@ fscatter3_edit_Joona(sub_pc(n_pc_range, 1), sub_pc(n_pc_range, 2), sub_pc(n_pc_r
 d = 3;
 
 % Radius of the local neighbourhood
-rn = dist + 0.01; % (metres) 
+rn = dist*1.15; % (metres) 
 
 % query points 
 

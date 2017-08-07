@@ -51,9 +51,9 @@ end
 
 range_profs = 2:n_profs-1;
 
-diff_z_th = 0.0021; % large 0.0028 (m); small 0.0023 (m)
-window = 15;
-jump_diff_th = 3;
+diff_z_th = 0.001; % large 0.0028 (m); small 0.0023 (m); smallest cracks: ~0.001 (m)
+window = 20;
+jump_diff_th = 5;
 
 n_pc_profs_cumsum = cumsum(n_pc_profs);
 
@@ -82,8 +82,7 @@ for i = range_profs
 
         if count >= window
             if any(neg_jump_inds > 0) && any(pos_jump_inds > 0)
-                if abs(length(neg_jump_inds(neg_jump_inds > 0)) - ...
-                        length(pos_jump_inds(pos_jump_inds > 0))) < jump_diff_th
+                if abs(sum(neg_jump_inds>0) - sum(pos_jump_inds>0)) < jump_diff_th
                     li_cand(neg_jump_inds(neg_jump_inds > 0)) = true;
                     li_cand(pos_jump_inds(pos_jump_inds > 0)) = true;
                 end
@@ -152,13 +151,15 @@ dist_arr = dist_arr(abs(diff(dist_arr))<0.02);
 dist = mean(dist_arr);
 
 % neighbourhood analysis
-rn = dist*1.2; % radius
-n_points_th = 2;
-li = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_cand, rn, n_points_th);
+rn = dist*1.15; % radius
+n_points_th = 1;
+ins_neigh = f_find_neighbourhood(sub_pc, li_cand, rn);
+li = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_cand, ins_neigh, n_points_th);
 
 rn = dist*4;
-n_points_th = 15;
-li = f_neighbourhood_analysis(sub_pc, sub_i_profs, li, rn, n_points_th);
+n_points_th = 20;
+ins_neigh = f_find_neighbourhood(sub_pc, li, rn);
+li = f_neighbourhood_analysis(sub_pc, sub_i_profs, li, ins_neigh, n_points_th);
 
 % li = li_cand;
 end
