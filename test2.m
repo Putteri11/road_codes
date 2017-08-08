@@ -36,7 +36,6 @@ sub_sub_pc = sub_pc(n_pc_range, :);
 n_pc_profs_cumsum = cumsum(n_pc_profs);
 sub_sub_i_profs = sub_i_profs(n_pc_range);
 
-% min_dist = Inf;
 dist_arr = zeros(n_pc_range(end), 1);
 prof_range = min(sub_sub_i_profs):max(sub_sub_i_profs)-1;
 
@@ -80,7 +79,6 @@ for i_prof = prof_range
 end
 
 dist_arr = dist_arr(dist_arr>0);
-% plot(diff(dist_arr), 'b.');
 dist_arr = dist_arr(abs(diff(dist_arr))<0.01);
 dist = mean(dist_arr);
 
@@ -99,7 +97,7 @@ toc
 d = 3;
 
 % Radius of the local neighbourhood
-rn = dist*1.15; % (metres) 
+rn = dist*1.1; % (metres) 
 
 % query points 
 

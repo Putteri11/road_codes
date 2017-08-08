@@ -32,7 +32,7 @@ function [ li ] = f_find_cracks_and_holes( sub_pc, sub_i_profs )
 
 
 n_pc = length(sub_pc(:,1)); % number of points in point cloud
-li_cand = zeros(n_pc, 1); % output preallocation
+li_cand = false(n_pc, 1); % output preallocation
 first_prof = sub_i_profs(1);
 n_profs = max(sub_i_profs) - first_prof + 1; % number of profiles
 
@@ -102,47 +102,44 @@ dist = mean(dist_arr);
 % apply thresholds
 range_profs = 2:n_profs-1;
 
-diff_z_th = 0.001; % large 0.0028 (m); small 0.0023 (m); smallest cracks: ~0.001 (m)
-window = 20;
-% jump_diff_th = 5;
+diff_z_th = 0.0023; % large 0.0028 (m); small 0.0023 (m); smallest cracks: ~0.001 (m)
 
 for i = range_profs
-    prof_road = sub_pc(logical(i-1+first_prof==sub_i_profs), :);
-    diff_z = diff(movmean(prof_road(:, 3), 5));
-    l_prof = length(prof_road(:, 1));
+    prof_i = i-1+first_prof;
+    pc_prof = sub_pc(logical(prof_i==sub_i_profs), :);
+    l_prof = length(pc_prof(:, 1));
     
-    neg_jump_inds = zeros(l_prof, 1);
-    pos_jump_inds = zeros(l_prof, 1);
-    count = 0;
-    in_window = false;
+    prof_range = 2:l_prof-1;
+    last_ind = 1;
     
-    for ii = 2:l_prof-1
-        index = n_pc_profs_cumsum(i - 1) + ii;
+    while last_ind < prof_range(end)
         
-        if diff_z(ii) < -diff_z_th
-            neg_jump_inds(ii) = index;
-            in_window = true;
-            count = 0;
-        end
-        
-        if in_window && (diff_z(ii) > diff_z_th)
-            pos_jump_inds(ii) = index;
-        end
-        
-        if count >= window
-            if any(neg_jump_inds > 0) && any(pos_jump_inds > 0)
-                li_cand(neg_jump_inds(neg_jump_inds > 0)) = true;
-                li_cand(pos_jump_inds(pos_jump_inds > 0)) = true;
+        [jump_inds, found_jump_inds, last_ind] = f_analyze_prof(pc_prof, ...
+            n_pc_profs_cumsum(i - 1), diff_z_th, prof_range);
+
+        if found_jump_inds
+            next_pc_prof = sub_pc(logical(prof_i+1==sub_i_profs), :);
+            Q = pc_prof(jump_inds(1:end-1:end) - n_pc_profs_cumsum(i - 1), 1:3);
+            rn = dist*1.5;
+            ins_neigh_next_prof = f_find_neighbourhood(next_pc_prof, Q, rn);
+            
+            if ~isempty(ins_neigh_next_prof{1}) && ~isempty(ins_neigh_next_prof{2})
+                ins_next_prof_range = min(ins_neigh_next_prof{1}):max(ins_neigh_next_prof{2})-1;
+                
+                diff_z_th2 = diff_z_th*3/4;
+                
+                [jump_inds_next_prof, found_jump_inds_next_prof, ~] = ...
+                    f_analyze_prof(next_pc_prof, n_pc_profs_cumsum(i), ...
+                    diff_z_th2, ins_next_prof_range);
+                
+                if found_jump_inds_next_prof
+                    li_cand(jump_inds) = true;
+                    li_cand(jump_inds_next_prof) = true;
+                end
             end
-            % reset state
-            neg_jump_inds = zeros(l_prof, 1);
-            pos_jump_inds = zeros(l_prof, 1);
-            count = 0;
-            in_window = false;
         end
-        if in_window
-            count = count + 1;
-        end
+        
+        prof_range = last_ind:prof_range(end);
         
     end
 end
@@ -151,12 +148,12 @@ end
 % neighbourhood analysis
 rn = dist*1.15; % radius
 n_points_th = 1;
-ins_neigh = f_find_neighbourhood(sub_pc, li_cand, rn);
+ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_cand, 1:3), rn);
 li = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_cand, ins_neigh, n_points_th);
 
 rn = dist*4;
 n_points_th = 20;
-ins_neigh = f_find_neighbourhood(sub_pc, li, rn);
+ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li, 1:3), rn);
 li = f_neighbourhood_analysis(sub_pc, sub_i_profs, li, ins_neigh, n_points_th);
 
 % li = li_cand;
