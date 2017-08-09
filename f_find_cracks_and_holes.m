@@ -86,11 +86,13 @@ for i_prof = prof_range
             end
         end
         
-        if flag == 0
-            min_cand = min([d_1, d_2, d_3]);
+        if flag == 0 && exist('mid', 'var')
+            min_cand = min([d_1, d_3]);
         end
         
-        dist_arr(n_pc_profs_cumsum(i_prof-prof_range(1)+1) + i_src) = min_cand;
+        if exist('min_cand', 'var')
+            dist_arr(n_pc_profs_cumsum(i_prof-prof_range(1)+1) + i_src) = min_cand;
+        end
     end
 end
 
@@ -102,45 +104,48 @@ dist = mean(dist_arr);
 % apply thresholds
 range_profs = 2:n_profs-1;
 
-diff_z_th = 0.0023; % large 0.0028 (m); small 0.0023 (m); smallest cracks: ~0.001 (m)
+std_diff_z_th = 2.5; % large 0.0028 (m); small 0.0023 (m); smallest cracks: ~0.001 (m)
+
+rn = dist*1.5;
 
 for i = range_profs
     prof_i = i-1+first_prof;
     pc_prof = sub_pc(logical(prof_i==sub_i_profs), :);
     l_prof = length(pc_prof(:, 1));
     
-    prof_range = 2:l_prof-1;
-    last_ind = 1;
-    
-    while last_ind < prof_range(end)
+    if l_prof > 0
         
-        [jump_inds, found_jump_inds, last_ind] = f_analyze_prof(pc_prof, ...
-            n_pc_profs_cumsum(i - 1), diff_z_th, prof_range);
-
-        if found_jump_inds
-            next_pc_prof = sub_pc(logical(prof_i+1==sub_i_profs), :);
-            Q = pc_prof(jump_inds(1:end-1:end) - n_pc_profs_cumsum(i - 1), 1:3);
-            rn = dist*1.5;
-            ins_neigh_next_prof = f_find_neighbourhood(next_pc_prof, Q, rn);
+        prof_range = 2:l_prof-1;
+        last_ind = 1;
+        
+        while last_ind < prof_range(end)
             
-            if ~isempty(ins_neigh_next_prof{1}) && ~isempty(ins_neigh_next_prof{2})
+            [jump_inds, found_jump_inds, last_ind] = f_analyze_prof(pc_prof, ...
+                n_pc_profs_cumsum(i - 1), std_diff_z_th, prof_range);
+            
+            if found_jump_inds
+                next_pc_prof = sub_pc(logical(prof_i+1==sub_i_profs), :);
+                Q = pc_prof(jump_inds(1:end-1:end) - n_pc_profs_cumsum(i - 1), 1:3);
+                ins_neigh_next_prof = f_find_neighbourhood(next_pc_prof, Q, rn);
+                
                 ins_next_prof_range = min(ins_neigh_next_prof{1}):max(ins_neigh_next_prof{2})-1;
                 
-                diff_z_th2 = diff_z_th*3/4;
-                
-                [jump_inds_next_prof, found_jump_inds_next_prof, ~] = ...
-                    f_analyze_prof(next_pc_prof, n_pc_profs_cumsum(i), ...
-                    diff_z_th2, ins_next_prof_range);
-                
-                if found_jump_inds_next_prof
-                    li_cand(jump_inds) = true;
-                    li_cand(jump_inds_next_prof) = true;
+                if ~isempty(ins_next_prof_range)
+                    
+                    [jump_inds_next_prof, found_jump_inds_next_prof, ~] = ...
+                        f_analyze_prof(next_pc_prof, n_pc_profs_cumsum(i), ...
+                        std_diff_z_th*3/4, ins_next_prof_range);
+                    
+                    if found_jump_inds_next_prof
+                        li_cand(jump_inds) = true;
+                        li_cand(jump_inds_next_prof) = true;
+                    end
                 end
             end
+            
+            prof_range = last_ind:prof_range(end);
+            
         end
-        
-        prof_range = last_ind:prof_range(end);
-        
     end
 end
 

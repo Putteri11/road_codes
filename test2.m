@@ -8,8 +8,8 @@
 
 %%
 
-% [li_1, pc_1] = Carve_Several_2D_Objects_edit_Joona(Xyzti(1:10:end, 1:2), 3); % haetaan alueet harvemmasta pilvestä
-% li_2 = logical(Carve_Several_2D_Objects(Xyzti(:, 1:2), pc_1)); % haetaan alueissa olevat pisteet koko pilvestä
+[li_1, pc_1] = Carve_Several_2D_Objects_edit_Joona(Xyzti(1:10:end, 1:2), 3); % haetaan alueet harvemmasta pilvestä
+li_2 = logical(Carve_Several_2D_Objects(Xyzti(:, 1:2), pc_1)); % haetaan alueissa olevat pisteet koko pilvestä
 
 %% Initialisation
 
@@ -102,9 +102,17 @@ rn = dist*1.1; % (metres)
 % query points 
 
 % Q = sub_pc(logical(li), 1:2);
-Q = sub_pc([round(sub_n_pc/2), round(sub_n_pc/3)], 1:3);
+% prof_i = round(mean(unique(sub_i_profs)))+3;
+% pc_prof = sub_pc(logical(sub_i_profs==prof_i), :);
+% ind1 = round(length(pc_prof(:,1))*0.25);
+% ind2 = round(length(pc_prof(:,1))*0.5);
+% inds = [ind1, ind2];
+inds = 1:sub_n_pc;
+Q = sub_pc(inds, 1:3);
+
 
 % point cloud
+% P = sub_pc(logical(sub_i_profs==prof_i+1), :);
 P = sub_pc;
 % P([round(sub_n_pc/2), round(sub_n_pc/3)], :) = [];
 
@@ -114,37 +122,83 @@ P = sub_pc;
 % create kdtree seach object
 ns = createns(P(:, 1:d));
 
+tic
+
 % Find points in the neighbourhood
 ins_neigh = rangesearch(ns, Q, rn);
 ins_neigh_size = size(ins_neigh);
 n_neigh = ins_neigh_size(1);
 
-test_arr = zeros(sub_n_pc, 1);
+toc
+
+% test_arr = zeros(sub_n_pc, 1);
+% for i_q=1:n_neigh
+%     search_profs = unique(sub_i_profs(ins_neigh{i_q}));
+% %     assert(length(search_profs)==3);
+%     q_prof = search_profs(2);
+% %     search_profs = search_profs([1,3]);
+%     inds = ins_neigh{i_q}(sub_i_profs(ins_neigh{i_q})>q_prof);
+%     
+%     test_arr(inds) = inds;
+% end
+
+% test_arr = test_arr(test_arr>0);
+
+tic
+
+z_diff_arr = zeros(n_neigh, 1);
+
 for i_q=1:n_neigh
     search_profs = unique(sub_i_profs(ins_neigh{i_q}));
-    assert(length(search_profs)==3);
-    q_prof = search_profs(2);
-%     search_profs = search_profs([1,3]);
-    inds = ins_neigh{i_q}(sub_i_profs(ins_neigh{i_q})~=q_prof);
-    test_arr(inds) = inds;
+    q_prof = sub_i_profs(ins_neigh{i_q}(1));
+%     pc_prof = sub_pc(sub_i_profs==q_prof, :);
+    inds_next_prof = ins_neigh{i_q}(sub_i_profs(ins_neigh{i_q})>q_prof);
+    
+    z = P(inds(i_q), 3);
+    z_next = P(inds_next_prof, 3);
+    
+    z_mean_next = mean(z_next);
+    z_diff = z_mean_next - z;
+    z_diff_arr(i_q) = z_diff;
+    
+%     disp(['difference: ', num2str(z_diff)]);
+    
+%     diff_z_across_prof = 
+    
+%     if 1<n_neigh
+%         k = -1/(n_neigh - 1);
+%         c = n_neigh/(n_neigh - 1);
+%     else
+%         k = 0;
+%         c = 0;
+%     end
+%     color_arr = [0 k*i_q+c 1];
+%     plot(z_next,'.', 'color', color_arr);
+%     hold on;
 end
 
-test_arr = test_arr(test_arr>0);
+toc
+
+plot(z_diff_arr, 'b.');
+
 
 %% Plotting (scatter)
-n_skip = 1;
+% n_skip = 1;
 
-ang=0:0.01:2*pi; 
-xp=rn*cos(ang);
-yp=rn*sin(ang);
+% ang=0:0.01:2*pi; 
+% xp=rn*cos(ang);
+% yp=rn*sin(ang);
 
 f_initFig(1, 'w');
 set(gca, 'dataaspectratio', [1 1 1]);
-fscatter3_edit_Joona(P(1:n_skip:end, 1), P(1:n_skip:end, 2), P(1:n_skip:end, 3), P(1:n_skip:end, 5), cmap);
-for i_q=1:n_neigh
-    plot(P(ins_neigh{i_q}, 1), P(ins_neigh{i_q}, 2), 'ro', 'markersize', 6);
-    plot(Q(i_q, 1)+xp,Q(i_q, 2)+yp ,'m', 'linewidth', 2);
-end
-plot(Q(:, 1), Q(:, 2), 'kx', 'markersize', 20, 'linewidth', 2);
-plot(P(test_arr, 1), P(test_arr, 2), 'd', 'markersize', 8, 'color', 0.5*[1 1 1], 'linewidth', 2);
+fscatter3_edit_Joona(sub_pc(1:n_skip:end, 1), sub_pc(1:n_skip:end, 2), sub_pc(1:n_skip:end, 3), sub_pc(1:n_skip:end, 5), cmap);
+li_test = logical(abs(z_diff_arr)>=0.015);
+plot3(sub_pc(li_test, 1), sub_pc(li_test, 2), sub_pc(li_test, 3), 'ro', 'markersize', 6);
+
+% for i_q=1:n_neigh
+%     plot(P(ins_neigh{i_q}, 1), P(ins_neigh{i_q}, 2), 'ro', 'markersize', 6);
+%     plot(Q(i_q, 1)+xp,Q(i_q, 2)+yp ,'m', 'linewidth', 2);
+% end
+% plot(Q(:, 1), Q(:, 2), 'kx', 'markersize', 20, 'linewidth', 2);
+% plot(P(test_arr, 1), P(test_arr, 2), 'd', 'markersize', 8, 'color', 0.5*[1 1 1], 'linewidth', 2);
 

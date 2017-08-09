@@ -16,6 +16,7 @@ close
 % Scanner mirror frequency
 % f_mirror = 1/0.006665850989521; % (Hz) scanner mirror frequency in Lahti
 f_mirror = 1/0.004000438028015; % (Hz) scanner mirror frequency in VT1 (160421_125641) and Nikkila (161124_162516_VUX-1HA.las)
+% f_mirror = 2*1/0.004000438028015; % /Hz) scanner mirror frequency in Sipoo
 
 % general parameter values
 % par = f_par_roadModelling('VT1'); % parameters for VT1
@@ -85,6 +86,7 @@ ticID = tic;
 % fname_pc = 'E:\Combat_roadModelling_data\RoadDataRoamerR3\Lahti\160609_150634_VUX-1HA_etrs.las'; % Lahti
 fname_pc = 'C:\Users\jsa\Desktop\04_EXPORT\Nikkila\161124_162516_VUX-1HA.las'; % Nikkila
 % fname_pc = 'C:\Users\jsa\Desktop\04_EXPORT\Nikkila\161124_162617_VUX-1HA.las'; % Nikkila
+% fname_pc = '"C:\Users\jsa\Documents\04_EXPORT\Sipoo170530 - VUX-1HA - 170530_110332_VUX-1HA - originalpoints.las"'; % Sipoo
 
 % load and pre-process point cloud
 [hdr_pc, pc] = las2mat(['-i ', fname_pc, options_las2mat]);
@@ -296,7 +298,7 @@ plot3(sub_pc(logical(li), 1), sub_pc(logical(li), 2), sub_pc(logical(li), 3), 'w
 % f_initFig(ind_fig, 'k')
 % n_skip_pc_plot = 10; % plot only every n_skip_pc_plot points
 % plot3(Xyzti(1:n_skip_pc_plot:end, 1), Xyzti(1:n_skip_pc_plot:end, 2), Xyzti(1:n_skip_pc_plot:end, 3), '.', 'markersize', 2, 'color', 0.75*[1 1 1])
-% fscatter3(Xyzti(1:n_skip_pc_plot:end, 1), Xyzti(1:n_skip_pc_plot:end, 2), Xyzti(1:n_skip_pc_plot:end, 3), Xyzti(1:n_skip_pc_plot:end, 5), cmap);
+% fscatter3_edit_Joona(Xyzti(1:n_skip_pc_plot:end, 1), Xyzti(1:n_skip_pc_plot:end, 2), Xyzti(1:n_skip_pc_plot:end, 3), Xyzti(1:n_skip_pc_plot:end, 5), cmap);
 % plot3(Xyzti(ins_pc_profStart, 1), Xyzti(ins_pc_profStart, 2), Xyzti(ins_pc_profStart, 3), 'wx', 'linewidth', 2, 'markersize', 20)
 
 

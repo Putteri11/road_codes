@@ -61,6 +61,9 @@ for i_prof = prof_range
         src = src_pts(i_src, :);
         left = 1;
         right = length(dst_pts(:,1));
+        if right==0
+            disp(i_prof);
+        end
         flag = 0;
         
         while left <= right - 2
@@ -81,13 +84,18 @@ for i_prof = prof_range
         end
         
         if flag == 0
-            min_cand = min([d_1, d_3]);
+            try
+                min_cand = min([d_1, d_3]);
+            catch
+            end
         end
         
         %         if (min_cand < min_dist)
         %             min_dist = min_cand;
         %         end
-        dist_arr(n_pc_profs_cumsum(i_prof-prof_range(1)+1) + i_src) = min_cand;
+        if exist('min_cand', 'var')
+            dist_arr(n_pc_profs_cumsum(i_prof-prof_range(1)+1) + i_src) = min_cand;
+        end
     end
 end
 
@@ -104,9 +112,12 @@ dist = mean(dist_arr);
 
 
 % fixed values
-i_th = 2100;
-diff_i_th = 130;
-diff_z_th = 0.0023; % 0.0023...0.0028
+% i_th = 2100;
+% diff_i_th = 130;
+
+std_diff_z_th = 2.5;
+% diff_z_th = 0.002; % 0.0023...0.0028
+
 % diff_z_th2 = 0.0018;
 % window = 20;
 % d_th = 0.028;
@@ -119,37 +130,43 @@ for i=2:sub_n_profs-1
     pc_prof = sub_pc(logical(prof_i==sub_i_profs), :);
     l_prof = length(pc_prof(:, 1));
     
-    prof_range = 2:l_prof-1;
-    last_ind = 1;
-    
-    while last_ind < prof_range(end)
+    if l_prof > 2
         
-        [jump_inds, found_jump_inds, last_ind] = f_analyze_prof(pc_prof, ...
-            helper(i - 1), diff_z_th, prof_range);
-
-        if found_jump_inds
-            next_pc_prof = sub_pc(logical(prof_i+1==sub_i_profs), :);
-            Q = pc_prof(jump_inds(1:end-1:end) - helper(i - 1), 1:3);
-            rn = dist*1.5;
-            ins_neigh_next_prof = f_find_neighbourhood(next_pc_prof, Q, rn);
-            ins_next_prof_range = min(ins_neigh_next_prof{1}):max(ins_neigh_next_prof{2})-1;
+        prof_range = 2:l_prof-1;
+        last_ind = 1;
+        
+        while last_ind < prof_range(end)
             
-            diff_z_th2 = diff_z_th*3/4;
+            [jump_inds, found_jump_inds, last_ind] = f_analyze_prof(pc_prof, ...
+                helper(i - 1), std_diff_z_th, prof_range);
             
-            [jump_inds_next_prof, found_jump_inds_next_prof, ~] = ...
-                f_analyze_prof(next_pc_prof, helper(i), diff_z_th2, ins_next_prof_range);
-            
-            if found_jump_inds_next_prof
-                li_cand(jump_inds) = true;
-                li_cand(jump_inds_next_prof) = true;
+            if found_jump_inds 
+                next_pc_prof = sub_pc(logical(sub_i_profs==prof_i+1), :);
+                Q = pc_prof(jump_inds(1:end-1:end) - helper(i - 1), 1:3);
+                rn = dist*1.5;
+                ins_neigh_next_prof = f_find_neighbourhood(next_pc_prof, Q, rn);
+                ins_next_prof_range = min(ins_neigh_next_prof{1}):max(ins_neigh_next_prof{2})-1;
+                
+                if ~isempty(ins_next_prof_range)
+                    
+                    [jump_inds_next_prof, found_jump_inds_next_prof, ~] = ...
+                        f_analyze_prof(next_pc_prof, helper(i), ...
+                        std_diff_z_th*3/4, ins_next_prof_range);
+                    
+                    if found_jump_inds_next_prof
+                        li_cand(jump_inds) = true;
+                        li_cand(jump_inds_next_prof) = true;
+                    end
+                end
             end
+            
+            prof_range = last_ind:prof_range(end);
+            
         end
-        
-        prof_range = last_ind:prof_range(end);
-        
+    else
+        disp(['length of profile: ', num2str(l_prof)]);
     end
     
-  
 end
 
 
@@ -238,22 +255,33 @@ for i_prof=mid_prof-prof_gap:mid_prof+prof_gap
     z_prof = Xyzi_prof(:,3);
     I_prof = Xyzi_prof(:,4);
     
+    std_diff_z = std(diff(z_prof));
+    disp([i_prof/10, std_diff_z]);
+    
     %     close all;
     figure(i_prof-(mid_prof-prof_gap)+1);
     
     i_min = 5;
-    gap = 5;
+    gap = 0;
     i_max = i_min+gap;
     for i=i_min:i_max
         %         movmean_i = movmean(I_prof, i);
-        movmean_z = movmean(z_prof, i);
+        movmean_z = movmean(z_prof, i);        
         movmean_x = movmean(x_prof, i);
         movmean_y = movmean(y_prof, i);
         dist = sqrt( diff(movmean_x).^2 + diff(movmean_y).^2 );
-        diff_z = diff(movmean_z);
         
-        k = -1/(i_max - i_min);
-        c = i_max/(i_max - i_min);
+        diff_z = diff(movmean_z);
+        std_diff_z2 = std(diff_z);
+        disp([i_prof/10, i, std_diff_z2]);
+        
+        if i_min<i_max
+            k = -1/(i_max - i_min);
+            c = i_max/(i_max - i_min);
+        else
+            k = 0;
+            c = 0;
+        end
         color_arr = [0 k*i+c 1];
         %         disp([i, color_arr]);
         subplot(221);
