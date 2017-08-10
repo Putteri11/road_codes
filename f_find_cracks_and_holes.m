@@ -12,7 +12,7 @@ function [ li ] = f_find_cracks_and_holes( sub_pc, sub_i_profs )
 %               t  is the time stamp of the point, and
 %               i  is the intensity of the point.
 %           Note: Xyzti is assumed to contain only the points classified
-%           as points in the road in the original point cloud.
+%           as points on the road in the original point cloud.
 %       - ins_prof_pc (n_pc x 1):
 %           Indices of the profiles for the point cloud Xyzti, i.e.
 %           indicates in which profile each of the points belongs, gotten
@@ -104,7 +104,7 @@ dist = mean(dist_arr);
 % apply thresholds
 range_profs = 2:n_profs-1;
 
-std_diff_z_th = 2.5; % large 0.0028 (m); small 0.0023 (m); smallest cracks: ~0.001 (m)
+diff_z_std_multiplier = 2.5; % large 0.0028 (m); small 0.0023 (m); smallest cracks: ~0.001 (m)
 
 rn = dist*1.5;
 
@@ -121,7 +121,7 @@ for i = range_profs
         while last_ind < prof_range(end)
             
             [jump_inds, found_jump_inds, last_ind] = f_analyze_prof(pc_prof, ...
-                n_pc_profs_cumsum(i - 1), std_diff_z_th, prof_range);
+                n_pc_profs_cumsum(i - 1), diff_z_std_multiplier, prof_range);
             
             if found_jump_inds
                 next_pc_prof = sub_pc(logical(prof_i+1==sub_i_profs), :);
@@ -134,7 +134,7 @@ for i = range_profs
                     
                     [jump_inds_next_prof, found_jump_inds_next_prof, ~] = ...
                         f_analyze_prof(next_pc_prof, n_pc_profs_cumsum(i), ...
-                        std_diff_z_th*3/4, ins_next_prof_range);
+                        diff_z_std_multiplier*3/4, ins_next_prof_range);
                     
                     if found_jump_inds_next_prof
                         li_cand(jump_inds) = true;

@@ -67,19 +67,29 @@ for i_prof = prof_range
             end
         end    
         
-        if flag == 0
+        if flag == 0 && exist('mid', 'var')
             min_cand = min([d_1, d_3]);
         end
         
 %         if (min_cand < min_dist)
 %             min_dist = min_cand;
 %         end
-        dist_arr(n_pc_profs_cumsum(i_prof-prof_range(1)+1) + i_src) = min_cand;
+        if exist('min_cand', 'var')
+            dist_arr(n_pc_profs_cumsum(i_prof-prof_range(1)+1) + i_src) = min_cand;
+        end
     end
 end
 
 dist_arr = dist_arr(dist_arr>0);
 dist_arr = dist_arr(abs(diff(dist_arr))<0.01);
+% dist = mean(dist_arr);
+% dist_std = std(dist_arr)/2;
+% dist_arr = dist_arr(dist_arr<=dist+dist_std | dist_arr>=dist-dist_std);
+% dist = mean(dist_arr);
+% dist_std = std(dist_arr)/2;
+% dist_arr = dist_arr(dist_arr<=dist+dist_std | dist_arr>=dist-dist_std);
+
+% dist_arr = dist_arr(abs(diff(dist_arr))<0.01);
 dist = mean(dist_arr);
 
 
@@ -90,6 +100,7 @@ toc
 
 % f_initFig(1, 'w');
 % fscatter3_edit_Joona(sub_pc(n_pc_range, 1), sub_pc(n_pc_range, 2), sub_pc(n_pc_range, 3), sub_pc(n_pc_range, 5), cmap);
+
 
 
 %%
@@ -107,7 +118,7 @@ rn = dist*1.1; % (metres)
 % ind1 = round(length(pc_prof(:,1))*0.25);
 % ind2 = round(length(pc_prof(:,1))*0.5);
 % inds = [ind1, ind2];
-inds = 1:sub_n_pc;
+inds = 1:1:sub_n_pc;
 Q = sub_pc(inds, 1:3);
 
 
@@ -115,6 +126,7 @@ Q = sub_pc(inds, 1:3);
 % P = sub_pc(logical(sub_i_profs==prof_i+1), :);
 P = sub_pc;
 % P([round(sub_n_pc/2), round(sub_n_pc/3)], :) = [];
+
 
 
 %% Find neighbourhood
@@ -146,54 +158,145 @@ toc
 
 tic
 
-z_diff_arr = zeros(n_neigh, 1);
+diff_z_std_multiplier = 2.5;
+diff_z_th_multiplier = 2;
+first_prof = sub_i_profs(1);
 
-for i_q=1:n_neigh
-    search_profs = unique(sub_i_profs(ins_neigh{i_q}));
-    q_prof = sub_i_profs(ins_neigh{i_q}(1));
+diff_z_th_across_profs_array = zeros(sub_n_profs, 1);
+
+for i_prof = first_prof:max(sub_i_profs)
+    pc_prof = sub_pc(logical(sub_i_profs==q_prof), :);
+    
+    std_diff_z = std(diff(movmean(pc_prof(:, 3), 5)));
+    diff_z_th = std_diff_z * diff_z_std_multiplier;
+    
+    diff_z_th_across_profs_array(i_prof - first_prof + 1) = ...
+        diff_z_th * diff_z_th_multiplier;
+end
+
+prof_gap = round(0.15/dist);
+neg_jump_inds = zeros(sub_n_pc, prof_gap);
+pos_jump_inds = zeros(sub_n_pc, prof_gap);
+neg_found = false;
+neg_found_prof = 0;
+pos_found = false;
+
+jump_inds = zeros(sub_n_pc, 1);
+li_neg_jump = false(sub_n_pc, 1);
+li_pos_jump = false(sub_n_pc, 1);
+
+% z_diff_arr = zeros(n_neigh, 1);
+
+for i_q=1:n_neigh-1
+    ind = ins_neigh{i_q}(1);
+%     search_profs = unique(sub_i_profs(ins_neigh{i_q}));
+    q_prof = sub_i_profs(ind);
+    
 %     pc_prof = sub_pc(sub_i_profs==q_prof, :);
+    inds_this_prof = ins_neigh{i_q}(sub_i_profs(ins_neigh{i_q})==q_prof);
     inds_next_prof = ins_neigh{i_q}(sub_i_profs(ins_neigh{i_q})>q_prof);
     
-    z = P(inds(i_q), 3);
-    z_next = P(inds_next_prof, 3);
+    z = sub_pc(inds_this_prof, 3);
+    z_next = sub_pc(inds_next_prof, 3);
     
+    z_mean = mean(z);
     z_mean_next = mean(z_next);
-    z_diff = z_mean_next - z;
-    z_diff_arr(i_q) = z_diff;
+    
+    z_prof_diff = z_mean_next - z_mean;
+    
+    col_i = mod(q_prof-1, prof_gap) + 1;
+    
+    neg_prof_diff = q_prof - neg_found_prof;
+    
+%     ticID = tic;
+    if neg_found && neg_prof_diff > prof_gap
+        neg_found = false;
+        neg_jump_inds = zeros(sub_n_pc, prof_gap);
+    end
+%     t_elapsed = toc(ticID);
+%     disp(['Test elapsed: ', num2str(t_elapsed), ' seconds.'])
+    
+    if z_prof_diff < -diff_z_th_across_profs_array(q_prof - first_prof + 1)
+        neg_jump_inds(ind, col_i) = ind;
+        neg_found = true;
+        neg_found_prof = q_prof;
+    elseif (z_prof_diff > ...
+            diff_z_th_across_profs_array(q_prof - first_prof + 1)) && neg_found
+        pos_jump_inds(ind, col_i) = ind;
+        pos_found = true;
+    end
+    
+    if pos_found && sub_i_profs(ins_neigh{i_q+1}(1))==q_prof+1
+        neg_jump_inds2 = reshape(neg_jump_inds, [], 1);
+        pos_jump_inds2 = reshape(pos_jump_inds, [], 1);
+        li_neg_jump(neg_jump_inds2(neg_jump_inds2>0)) = true;
+        li_pos_jump(pos_jump_inds2(pos_jump_inds2>0)) = true;
+        
+        neg_found = false;
+        pos_found = false;
+        neg_jump_inds = zeros(sub_n_pc, prof_gap);
+        pos_jump_inds = zeros(sub_n_pc, prof_gap);
+    end
+    
+%     ticID = tic;
+    if neg_prof_diff <= prof_gap && sub_i_profs(ins_neigh{i_q+1}(1))==q_prof+1
+        neg_jump_inds(:, mod(q_prof, prof_gap) + 1) = zeros(sub_n_pc, 1);
+    end
+%     t_elapsed = toc(ticID);
+%     disp(['Test elapsed: ', num2str(t_elapsed), ' seconds.'])
+    
+%     z_diff_arr(i_q) = z_prof_diff;
     
 %     disp(['difference: ', num2str(z_diff)]);
-    
-%     diff_z_across_prof = 
-    
-%     if 1<n_neigh
-%         k = -1/(n_neigh - 1);
-%         c = n_neigh/(n_neigh - 1);
-%     else
-%         k = 0;
-%         c = 0;
-%     end
-%     color_arr = [0 k*i_q+c 1];
-%     plot(z_next,'.', 'color', color_arr);
-%     hold on;
+
 end
 
 toc
 
-plot(z_diff_arr, 'b.');
+% figure(n_neigh)
+% plot(z_diff_arr, 'b.');
 
 
 %% Plotting (scatter)
-% n_skip = 1;
+n_skip = 1;
 
 % ang=0:0.01:2*pi; 
 % xp=rn*cos(ang);
 % yp=rn*sin(ang);
+% test_th = std(z_diff_arr, 'omitnan')*3;
+% test_th = diff_z_th*4;
 
-f_initFig(1, 'w');
+ind_fig = ind_fig + 1;
+f_initFig(ind_fig, 'w')
 set(gca, 'dataaspectratio', [1 1 1]);
 fscatter3_edit_Joona(sub_pc(1:n_skip:end, 1), sub_pc(1:n_skip:end, 2), sub_pc(1:n_skip:end, 3), sub_pc(1:n_skip:end, 5), cmap);
-li_test = logical(abs(z_diff_arr)>=0.015);
-plot3(sub_pc(li_test, 1), sub_pc(li_test, 2), sub_pc(li_test, 3), 'ro', 'markersize', 6);
+
+li = f_find_cracks_and_holes(sub_pc, sub_i_profs);
+plot3(sub_pc(li, 1), sub_pc(li, 2), sub_pc(li, 3), 'ko', 'markersize', 6);
+
+% ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_neg_jump, 1:3), dist*1.15);
+% li_test1 = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_neg_jump, ins_neigh, 1);
+ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_neg_jump, :), 2*dist);
+li_test1 = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_neg_jump, ins_neigh, 8);
+plot3(sub_pc(li_test1, 1), sub_pc(li_test1, 2), sub_pc(li_test1, 3), 'bo', 'markersize', 6);
+% plot3(sub_pc(li_neg_jump, 1), sub_pc(li_neg_jump, 2), sub_pc(li_neg_jump, 3), 'bo', 'markersize', 6);
+
+% ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_pos_jump, 1:3), dist*1.15);
+% li_test2 = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_pos_jump, ins_neigh, 1);
+ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_pos_jump, :), 2*dist);
+li_test2 = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_pos_jump, ins_neigh, 8);
+plot3(sub_pc(li_test2, 1), sub_pc(li_test2, 2), sub_pc(li_test2, 3), 'ro', 'markersize', 6);
+% plot3(sub_pc(li_pos_jump, 1), sub_pc(li_pos_jump, 2), sub_pc(li_pos_jump, 3), 'ro', 'markersize', 6);
+
+% li_test1 = logical(z_diff_arr>=test_th);
+% ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_test1, :), 2*dist);
+% li_test1 = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_test1, ins_neigh, 4);
+% plot3(sub_pc(li_test1, 1), sub_pc(li_test1, 2), sub_pc(li_test1, 3), 'ro', 'markersize', 6);
+
+% li_test2 = logical(z_diff_arr<=-test_th);
+% ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_test2, :), 2*dist);
+% li_test2 = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_test2, ins_neigh, 4);
+% plot3(sub_pc(li_test2, 1), sub_pc(li_test2, 2), sub_pc(li_test2, 3), 'bo', 'markersize', 6);
 
 % for i_q=1:n_neigh
 %     plot(P(ins_neigh{i_q}, 1), P(ins_neigh{i_q}, 2), 'ro', 'markersize', 6);

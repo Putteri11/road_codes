@@ -1,11 +1,11 @@
 function [ inds, on_top, last_ind ] = f_analyze_prof( pc_prof, n_pc_prev, ...
-    std_diff_z_th, prof_range )
+    diff_z_std_multiplier, prof_range )
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 
 diff_z = diff(movmean(pc_prof(:, 3), 5));
 std_diff_z = std(diff_z);
-diff_z_th = std_diff_z * std_diff_z_th;
+diff_z_th = std_diff_z * diff_z_std_multiplier;
 
 l_prof = length(pc_prof(:, 1));
 

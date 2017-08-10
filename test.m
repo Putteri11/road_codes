@@ -151,7 +151,7 @@ for i=2:sub_n_profs-1
                     
                     [jump_inds_next_prof, found_jump_inds_next_prof, ~] = ...
                         f_analyze_prof(next_pc_prof, helper(i), ...
-                        std_diff_z_th*3/4, ins_next_prof_range);
+                        std_diff_z_th*4/5, ins_next_prof_range);
                     
                     if found_jump_inds_next_prof
                         li_cand(jump_inds) = true;
@@ -255,13 +255,13 @@ for i_prof=mid_prof-prof_gap:mid_prof+prof_gap
     z_prof = Xyzi_prof(:,3);
     I_prof = Xyzi_prof(:,4);
     
-    std_diff_z = std(diff(z_prof));
-    disp([i_prof/10, std_diff_z]);
+    var_z_prof = var(z_prof);
+    disp([i_prof/10, var_z_prof]);
     
     %     close all;
     figure(i_prof-(mid_prof-prof_gap)+1);
     
-    i_min = 5;
+    i_min = 15;
     gap = 0;
     i_max = i_min+gap;
     for i=i_min:i_max
@@ -272,8 +272,8 @@ for i_prof=mid_prof-prof_gap:mid_prof+prof_gap
         dist = sqrt( diff(movmean_x).^2 + diff(movmean_y).^2 );
         
         diff_z = diff(movmean_z);
-        std_diff_z2 = std(diff_z);
-        disp([i_prof/10, i, std_diff_z2]);
+        var_z_prof2 = var(movmean_z);
+        disp([i_prof/10, i, var_z_prof2]);
         
         if i_min<i_max
             k = -1/(i_max - i_min);

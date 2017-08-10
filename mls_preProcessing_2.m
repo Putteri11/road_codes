@@ -84,9 +84,9 @@ ticID = tic;
 % point cloud file name
 % fname_pc = 'E:\Combat_roadModelling_data\RoadDataRoamerR3\VT1\160421_125641_VUX-1-HA_etrs.las'; % VT1
 % fname_pc = 'E:\Combat_roadModelling_data\RoadDataRoamerR3\Lahti\160609_150634_VUX-1HA_etrs.las'; % Lahti
-fname_pc = 'C:\Users\jsa\Desktop\04_EXPORT\Nikkila\161124_162516_VUX-1HA.las'; % Nikkila
+% fname_pc = 'C:\Users\jsa\Desktop\04_EXPORT\Nikkila\161124_162516_VUX-1HA.las'; % Nikkila
 % fname_pc = 'C:\Users\jsa\Desktop\04_EXPORT\Nikkila\161124_162617_VUX-1HA.las'; % Nikkila
-% fname_pc = '"C:\Users\jsa\Documents\04_EXPORT\Sipoo170530 - VUX-1HA - 170530_110332_VUX-1HA - originalpoints.las"'; % Sipoo
+fname_pc = '"C:\Users\jsa\Documents\04_EXPORT\Sipoo170530 - VUX-1HA - 170530_110332_VUX-1HA - originalpoints.las"'; % Sipoo
 
 % load and pre-process point cloud
 [hdr_pc, pc] = las2mat(['-i ', fname_pc, options_las2mat]);
@@ -294,12 +294,12 @@ plot3(sub_pc(logical(li), 1), sub_pc(logical(li), 2), sub_pc(logical(li), 3), 'w
 % plot startint point of each profile; this way you can test if the profile
 % retrieval works ok
 
-% ind_fig = ind_fig + 1;
-% f_initFig(ind_fig, 'k')
-% n_skip_pc_plot = 10; % plot only every n_skip_pc_plot points
+ind_fig = ind_fig + 1;
+f_initFig(ind_fig, 'k')
+n_skip_pc_plot = 10; % plot only every n_skip_pc_plot points
 % plot3(Xyzti(1:n_skip_pc_plot:end, 1), Xyzti(1:n_skip_pc_plot:end, 2), Xyzti(1:n_skip_pc_plot:end, 3), '.', 'markersize', 2, 'color', 0.75*[1 1 1])
-% fscatter3_edit_Joona(Xyzti(1:n_skip_pc_plot:end, 1), Xyzti(1:n_skip_pc_plot:end, 2), Xyzti(1:n_skip_pc_plot:end, 3), Xyzti(1:n_skip_pc_plot:end, 5), cmap);
-% plot3(Xyzti(ins_pc_profStart, 1), Xyzti(ins_pc_profStart, 2), Xyzti(ins_pc_profStart, 3), 'wx', 'linewidth', 2, 'markersize', 20)
+fscatter3_edit_Joona(Xyzti(1:n_skip_pc_plot:end, 1), Xyzti(1:n_skip_pc_plot:end, 2), Xyzti(1:n_skip_pc_plot:end, 3), Xyzti(1:n_skip_pc_plot:end, 5), cmap);
+plot3(Xyzti(ins_pc_profStart, 1), Xyzti(ins_pc_profStart, 2), Xyzti(ins_pc_profStart, 3), 'wx', 'linewidth', 2, 'markersize', 20)
 
 
 %% Write classified point cloud to ta las-file

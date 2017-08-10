@@ -19,7 +19,7 @@ for i_q = q_indices
             other_profs = search_profs_unique([1,3]);
             inds1 = ins_neigh{i_q}(search_profs==other_profs(1));
             inds2 = ins_neigh{i_q}(search_profs==other_profs(2));
-            if (sum(li_cand(inds1)) > n_points_th) && (sum(li_cand(inds2)) >= n_points_th)
+            if (sum(li_cand(inds1)) >= n_points_th) && (sum(li_cand(inds2)) >= n_points_th)
                 inds = ins_neigh{i_q}(search_profs~=q_prof);
                 li_2(inds) = true;
             end
@@ -31,7 +31,7 @@ for i_q = q_indices
                     other_prof = search_profs_unique(2);
             end
             inds1 = ins_neigh{i_q}(search_profs==other_prof);
-            if sum(li_cand(inds1)) > n_points_th
+            if sum(li_cand(inds1)) >= n_points_th
                 inds = ins_neigh{i_q}(search_profs~=q_prof);
                 li_2(inds) = true;
             end
