@@ -1,9 +1,11 @@
-function [ ins_neigh ] = f_find_neighbourhood( sub_pc, Q, rn )
+function [ ins_neigh ] = f_find_neighbourhood( sub_pc, Q, rn, d )
 %Description...
 %
 
 % Dimension of the point cloud
-d = 2;
+if nargin<4
+    d = 2;
+end
 
 % query points
 % if islogical(li_cand)

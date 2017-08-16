@@ -119,8 +119,8 @@ rn = dist*1.1; % (metres)
 % ind2 = round(length(pc_prof(:,1))*0.5);
 % inds = [ind1, ind2];
 inds = 1:1:sub_n_pc;
-Q = sub_pc(inds, 1:3);
-
+Q = sub_pc(inds, 1:d);
+q_inds = length(Q(:,1));
 
 % point cloud
 % P = sub_pc(logical(sub_i_profs==prof_i+1), :);
@@ -138,8 +138,6 @@ tic
 
 % Find points in the neighbourhood
 ins_neigh = rangesearch(ns, Q, rn);
-ins_neigh_size = size(ins_neigh);
-n_neigh = ins_neigh_size(1);
 
 toc
 
@@ -165,7 +163,7 @@ first_prof = sub_i_profs(1);
 diff_z_th_across_profs_array = zeros(sub_n_profs, 1);
 
 for i_prof = first_prof:max(sub_i_profs)
-    pc_prof = sub_pc(logical(sub_i_profs==q_prof), :);
+    pc_prof = sub_pc(logical(sub_i_profs==i_prof), :);
     
     std_diff_z = std(diff(movmean(pc_prof(:, 3), 5)));
     diff_z_th = std_diff_z * diff_z_std_multiplier;
@@ -174,20 +172,22 @@ for i_prof = first_prof:max(sub_i_profs)
         diff_z_th * diff_z_th_multiplier;
 end
 
-prof_gap = round(0.15/dist);
+dist_across_profs = 0.15;
+prof_gap = round(dist_across_profs/dist);
 neg_jump_inds = zeros(sub_n_pc, prof_gap);
 pos_jump_inds = zeros(sub_n_pc, prof_gap);
 neg_found = false;
 neg_found_prof = 0;
 pos_found = false;
+found_jump_inds = false;
 
-jump_inds = zeros(sub_n_pc, 1);
+% jump_inds = zeros(sub_n_pc, 1);
 li_neg_jump = false(sub_n_pc, 1);
 li_pos_jump = false(sub_n_pc, 1);
 
 % z_diff_arr = zeros(n_neigh, 1);
 
-for i_q=1:n_neigh-1
+for i_q=1:q_inds-1
     ind = ins_neigh{i_q}(1);
 %     search_profs = unique(sub_i_profs(ins_neigh{i_q}));
     q_prof = sub_i_profs(ind);
@@ -207,40 +207,88 @@ for i_q=1:n_neigh-1
     col_i = mod(q_prof-1, prof_gap) + 1;
     
     neg_prof_diff = q_prof - neg_found_prof;
-    
+%     pos_prof_diff = q_prof - pos_found_prof;
+%     disp(neg_prof_diff);
 %     ticID = tic;
     if neg_found && neg_prof_diff > prof_gap
-        neg_found = false;
-        neg_jump_inds = zeros(sub_n_pc, prof_gap);
-    end
-%     t_elapsed = toc(ticID);
-%     disp(['Test elapsed: ', num2str(t_elapsed), ' seconds.'])
-    
-    if z_prof_diff < -diff_z_th_across_profs_array(q_prof - first_prof + 1)
-        neg_jump_inds(ind, col_i) = ind;
-        neg_found = true;
-        neg_found_prof = q_prof;
-    elseif (z_prof_diff > ...
-            diff_z_th_across_profs_array(q_prof - first_prof + 1)) && neg_found
-        pos_jump_inds(ind, col_i) = ind;
-        pos_found = true;
-    end
-    
-    if pos_found && sub_i_profs(ins_neigh{i_q+1}(1))==q_prof+1
-        neg_jump_inds2 = reshape(neg_jump_inds, [], 1);
-        pos_jump_inds2 = reshape(pos_jump_inds, [], 1);
-        li_neg_jump(neg_jump_inds2(neg_jump_inds2>0)) = true;
-        li_pos_jump(pos_jump_inds2(pos_jump_inds2>0)) = true;
-        
+%         disp('hello');
         neg_found = false;
         pos_found = false;
         neg_jump_inds = zeros(sub_n_pc, prof_gap);
         pos_jump_inds = zeros(sub_n_pc, prof_gap);
     end
+%     t_elapsed = toc(ticID);
+%     disp(['Test elapsed: ', num2str(t_elapsed), ' seconds.'])
+
+   
+    if ~found_jump_inds
+        diff_z_th_across_profs = diff_z_th_across_profs_array(q_prof - first_prof + 1);
+    else
+        diff_z_th_across_profs = diff_z_th_across_profs_array(q_prof - first_prof + 1)*3/4;
+    end
+    
+    if z_prof_diff < -diff_z_th_across_profs
+        neg_jump_inds(ind, col_i) = ind;
+        neg_found = true;
+        neg_found_prof = q_prof;
+        found_jump_inds = true;
+    elseif (z_prof_diff > diff_z_th_across_profs) && neg_found
+        pos_jump_inds(ind, col_i) = ind;
+        pos_found = true;
+        found_jump_inds = true;
+    else
+        found_jump_inds = false;
+    end
+    
+    if pos_found && sub_i_profs(ins_neigh{i_q+1}(1))==q_prof+1
+        neg_col_i = mod(col_i - 2 + prof_gap, prof_gap) + 1;
+        if sum(neg_jump_inds(:, neg_col_i))>0
+            neg_jump_inds2 = reshape(neg_jump_inds(:, neg_col_i), [], 1);
+            pos_jump_inds2 = reshape(pos_jump_inds(:, col_i), [], 1);
+            neg_jump_inds2 = neg_jump_inds2(neg_jump_inds2>0);
+            pos_jump_inds2 = pos_jump_inds2(pos_jump_inds2>0);
+            neg_jump_inds3 = zeros(length(neg_jump_inds2), 1);
+            pos_jump_inds3 = zeros(length(pos_jump_inds2), 1);
+            flag = false;
+            
+            for neg_i = 1:length(neg_jump_inds2)
+                for pos_i = 1:length(pos_jump_inds2)
+                    neg_point = sub_pc(neg_jump_inds2(neg_i), 1:2);
+                    pos_point = sub_pc(pos_jump_inds2(pos_i), 1:2);
+                    d_test = sqrt(sum(diff(vertcat(neg_point, pos_point)).^2));
+%                     disp(d_test);
+                    if d_test < dist_across_profs
+                        pos_jump_inds3(pos_i) = pos_jump_inds2(pos_i);
+                        flag = true;
+                    end
+                end
+                if flag
+                    neg_jump_inds3(neg_i) = neg_jump_inds2(neg_i);
+                    flag = false;
+                end
+            end
+            
+            neg_jump_inds3 = neg_jump_inds3(neg_jump_inds3>0);
+            pos_jump_inds3 = pos_jump_inds3(pos_jump_inds3>0);
+            
+            if abs(1 - length(pos_jump_inds3)/length(neg_jump_inds3)) < 0.5
+                li_neg_jump(neg_jump_inds3) = true;
+                li_pos_jump(pos_jump_inds3) = true;
+            end
+            
+            if sum(neg_jump_inds(:, col_i))==0
+                neg_found = false;
+            end
+            pos_found = false;
+            neg_found_prof = 0;
+            neg_jump_inds(:, neg_col_i) = zeros(sub_n_pc, 1);
+            pos_jump_inds(:, col_i) = zeros(sub_n_pc, 1);
+        end
+    end
     
 %     ticID = tic;
     if neg_prof_diff <= prof_gap && sub_i_profs(ins_neigh{i_q+1}(1))==q_prof+1
-        neg_jump_inds(:, mod(q_prof, prof_gap) + 1) = zeros(sub_n_pc, 1);
+        neg_jump_inds(:, mod(col_i, prof_gap) + 1) = zeros(sub_n_pc, 1);
     end
 %     t_elapsed = toc(ticID);
 %     disp(['Test elapsed: ', num2str(t_elapsed), ' seconds.'])
@@ -271,32 +319,27 @@ f_initFig(ind_fig, 'w')
 set(gca, 'dataaspectratio', [1 1 1]);
 fscatter3_edit_Joona(sub_pc(1:n_skip:end, 1), sub_pc(1:n_skip:end, 2), sub_pc(1:n_skip:end, 3), sub_pc(1:n_skip:end, 5), cmap);
 
-li = f_find_cracks_and_holes(sub_pc, sub_i_profs);
-plot3(sub_pc(li, 1), sub_pc(li, 2), sub_pc(li, 3), 'ko', 'markersize', 6);
+% tic
+% li = f_find_cracks_and_holes(sub_pc, sub_i_profs);
+% plot3(sub_pc(li, 1), sub_pc(li, 2), sub_pc(li, 3), 'ko', 'markersize', 6);
+% toc
 
-% ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_neg_jump, 1:3), dist*1.15);
-% li_test1 = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_neg_jump, ins_neigh, 1);
-ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_neg_jump, :), 2*dist);
-li_test1 = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_neg_jump, ins_neigh, 8);
-plot3(sub_pc(li_test1, 1), sub_pc(li_test1, 2), sub_pc(li_test1, 3), 'bo', 'markersize', 6);
+tic
+li1 = f_analyze_across_profs(sub_pc, sub_i_profs, dist, ...
+    diff_z_std_multiplier, diff_z_th_multiplier, dist_across_profs);
+plot3(sub_pc(li1, 1), sub_pc(li1, 2), sub_pc(li1, 3), 'ro', 'markersize', 6);
+toc
+
+% ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_neg_jump, :), 2*dist);
+% li_test1 = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_neg_jump, ins_neigh, 10);
+% plot3(sub_pc(li_test1, 1), sub_pc(li_test1, 2), sub_pc(li_test1, 3), 'bo', 'markersize', 6);
 % plot3(sub_pc(li_neg_jump, 1), sub_pc(li_neg_jump, 2), sub_pc(li_neg_jump, 3), 'bo', 'markersize', 6);
-
-% ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_pos_jump, 1:3), dist*1.15);
-% li_test2 = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_pos_jump, ins_neigh, 1);
-ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_pos_jump, :), 2*dist);
-li_test2 = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_pos_jump, ins_neigh, 8);
-plot3(sub_pc(li_test2, 1), sub_pc(li_test2, 2), sub_pc(li_test2, 3), 'ro', 'markersize', 6);
+% 
+% ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_pos_jump, :), 2*dist);
+% li_test2 = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_pos_jump, ins_neigh, 10);
+% plot3(sub_pc(li_test2, 1), sub_pc(li_test2, 2), sub_pc(li_test2, 3), 'ro', 'markersize', 6);
 % plot3(sub_pc(li_pos_jump, 1), sub_pc(li_pos_jump, 2), sub_pc(li_pos_jump, 3), 'ro', 'markersize', 6);
 
-% li_test1 = logical(z_diff_arr>=test_th);
-% ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_test1, :), 2*dist);
-% li_test1 = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_test1, ins_neigh, 4);
-% plot3(sub_pc(li_test1, 1), sub_pc(li_test1, 2), sub_pc(li_test1, 3), 'ro', 'markersize', 6);
-
-% li_test2 = logical(z_diff_arr<=-test_th);
-% ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_test2, :), 2*dist);
-% li_test2 = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_test2, ins_neigh, 4);
-% plot3(sub_pc(li_test2, 1), sub_pc(li_test2, 2), sub_pc(li_test2, 3), 'bo', 'markersize', 6);
 
 % for i_q=1:n_neigh
 %     plot(P(ins_neigh{i_q}, 1), P(ins_neigh{i_q}, 2), 'ro', 'markersize', 6);

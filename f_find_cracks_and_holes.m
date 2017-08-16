@@ -32,7 +32,7 @@ function [ li ] = f_find_cracks_and_holes( sub_pc, sub_i_profs )
 
 
 n_pc = length(sub_pc(:,1)); % number of points in point cloud
-li_cand = false(n_pc, 1); % output preallocation
+li_cand1 = false(n_pc, 1); % output preallocation
 first_prof = sub_i_profs(1);
 n_profs = max(sub_i_profs) - first_prof + 1; % number of profiles
 
@@ -113,7 +113,7 @@ for i = range_profs
     pc_prof = sub_pc(logical(prof_i==sub_i_profs), :);
     l_prof = length(pc_prof(:, 1));
     
-    if l_prof > 0
+    if l_prof > 2
         
         prof_range = 2:l_prof-1;
         last_ind = 1;
@@ -137,8 +137,8 @@ for i = range_profs
                         diff_z_std_multiplier*3/4, ins_next_prof_range);
                     
                     if found_jump_inds_next_prof
-                        li_cand(jump_inds) = true;
-                        li_cand(jump_inds_next_prof) = true;
+                        li_cand1(jump_inds) = true;
+                        li_cand1(jump_inds_next_prof) = true;
                     end
                 end
             end
@@ -149,17 +149,24 @@ for i = range_profs
     end
 end
 
+diff_z_th_multiplier = 2;
+dist_across_profs = 0.15;
+
+li_cand2 = f_analyze_across_profs(sub_pc, sub_i_profs, dist, ...
+    diff_z_std_multiplier, diff_z_th_multiplier, dist_across_profs);
 
 % neighbourhood analysis
 rn = dist*1.15; % radius
 n_points_th = 1;
+ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_cand1, 1:3), rn);
+li_cand1 = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_cand1, ins_neigh, n_points_th);
+
+li_cand = li_cand1 | li_cand2;
+
+rn = dist*3;
+n_points_th = 20;
 ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_cand, 1:3), rn);
 li = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_cand, ins_neigh, n_points_th);
-
-rn = dist*4;
-n_points_th = 20;
-ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li, 1:3), rn);
-li = f_neighbourhood_analysis(sub_pc, sub_i_profs, li, ins_neigh, n_points_th);
 
 % li = li_cand;
 end

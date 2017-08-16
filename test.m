@@ -221,7 +221,6 @@ ticID = tic;
 
 n_skip = 5;
 
-close all;
 f_initFig(1, 'k')
 fscatter3_edit_Joona(sub_pc(1:n_skip:end, 1), sub_pc(1:n_skip:end, 2), sub_pc(1:n_skip:end, 3), sub_pc(1:n_skip:end, 5), cmap);
 
