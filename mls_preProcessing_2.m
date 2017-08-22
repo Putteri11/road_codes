@@ -305,7 +305,7 @@ plot3(Xyzti(ins_pc_profStart, 1), Xyzti(ins_pc_profStart, 2), Xyzti(ins_pc_profS
 %% Write classified point cloud to ta las-file
 
 % classification
-% li_pc_roadDefect = logical(li);
+% li_pc_roadDefect = li;
 % pc.classification(li_pc_roadDefect) = classLabel_crack_or_hole;
 
 % % write las file

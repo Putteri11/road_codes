@@ -30,52 +30,57 @@ function [ li ] = f_find_cracks_and_holes( sub_pc, sub_i_profs )
 %   TODO (delete this):
 %
 
+%% Initialization
+sub_n_pc = length(sub_pc(:,1)); % number of points in point cloud
+li_cand1 = false(sub_n_pc, 1); % candidate 1 preallocation
+first_prof = sub_i_profs(1); % first profile
+sub_n_profs = max(sub_i_profs) - first_prof + 1; % number of profiles
 
-n_pc = length(sub_pc(:,1)); % number of points in point cloud
-li_cand1 = false(n_pc, 1); % output preallocation
-first_prof = sub_i_profs(1);
-n_profs = max(sub_i_profs) - first_prof + 1; % number of profiles
-
-n_pc_profs = zeros(n_profs, 1); % number of points in each of the profiles,
-% preallocation.
+n_pc_profs = zeros(sub_n_profs, 1); % number of points in each of the profiles,
+                                % preallocation.
 help_var = first_prof; % a helper variable
 
 % constructing n_pc_profs (fast)
-for ii=1:n_pc
+for ii=1:sub_n_pc
     if sub_i_profs(ii) ~= help_var
         help_var = sub_i_profs(ii);
     end
     n_pc_profs(help_var - first_prof + 1) = n_pc_profs(help_var - first_prof + 1) + 1;
 end
 
-n_pc_profs_cumsum = cumsum(n_pc_profs);
+n_pc_profs_cumsum = cumsum(n_pc_profs); % used for determing the index of
+                                        % sub_pc inside a profile
 
-% Find an approximate distance between profiles
-n_pc_range = 1:round(mean(n_pc_profs)*2);
+%% Find an approximate distance between profiles (dist)
+% take a small subset of the point cloud for calculations
+n_pc_range = 1:round(mean(n_pc_profs)*2); 
 sub_sub_pc = sub_pc(n_pc_range, :);
 sub_sub_i_profs = sub_i_profs(n_pc_range);
 
-dist_arr = zeros(n_pc_range(end), 1);
+dist_arr = zeros(n_pc_range(end), 1); %preallocation
 prof_range = min(sub_sub_i_profs):max(sub_sub_i_profs)-1;
 
 for i_prof = prof_range
-    src_pts = sub_sub_pc(sub_sub_i_profs==i_prof, 1:3);
-    dst_pts = sub_sub_pc(sub_sub_i_profs==i_prof+1, 1:3);
+    prof_pts = sub_sub_pc(sub_sub_i_profs==i_prof, 1:3); % profile points
+    next_prof_pts = sub_sub_pc(sub_sub_i_profs==i_prof+1, 1:3); % next prof points
     
-    for i_src = 1:10:length(src_pts(:,1))
+    for i_src = 1:10:length(prof_pts(:,1)) % skip every 10th point in this profile
         % binary search
-        src = src_pts(i_src, :);
+        prof_pt = prof_pts(i_src, :); % point in this profile
         left = 1;
-        right = length(dst_pts(:,1));
+        right = length(next_prof_pts(:,1));
         flag = 0;
         
+        % calculate three adjacent distances and proceed according to their
+        % order
         while left <= right - 2
             mid = ceil((left + right) / 2);
-            d_1 = sqrt(sum(diff(vertcat(src, dst_pts(mid-1, :))).^2));
-            d_2 = sqrt(sum(diff(vertcat(src, dst_pts(mid, :))).^2));
-            d_3 = sqrt(sum(diff(vertcat(src, dst_pts(mid+1, :))).^2));
+            d_1 = sqrt(sum(diff(vertcat(prof_pt, next_prof_pts(mid-1, :))).^2));
+            d_2 = sqrt(sum(diff(vertcat(prof_pt, next_prof_pts(mid, :))).^2));
+            d_3 = sqrt(sum(diff(vertcat(prof_pt, next_prof_pts(mid+1, :))).^2));
             
             if (d_2 <= d_1) && (d_2 <= d_3)
+                % min candidate found; break from loop
                 min_cand = d_2;
                 flag = 1;
                 break;
@@ -97,16 +102,27 @@ for i_prof = prof_range
 end
 
 dist_arr = dist_arr(dist_arr>0);
-dist_arr = dist_arr(abs(diff(dist_arr))<0.02);
+dist_arr = dist_arr(abs(diff(dist_arr))<0.02); % filter some candidates out
 
 dist = mean(dist_arr);
 
-% apply thresholds
-range_profs = 2:n_profs-1;
+%% Essential parameters
+diff_z_std_multiplier = 2.5; % Used for classifying along the profile
+diff_z_th_multiplier = 2; % Used for classifying across profiles along with 
+                          % diff_z_std_multiplier
+dist_across_profs = 0.15; % determines how many meters are taken into 
+                          % consideration when classifying across profile
+% radius and a threshold for very near neighbourhood analysis
+rn1 = dist*1.15; 
+n_points_th1 = 1;
+% radius and a threshold for normal neighbourhood analysis
+rn2 = dist*3;
+n_points_th2 = 20;
 
-diff_z_std_multiplier = 2.5; % large 0.0028 (m); small 0.0023 (m); smallest cracks: ~0.001 (m)
+%% Calculate/classify crack and hole candidates
+range_profs = 2:sub_n_profs-1;
 
-rn = dist*1.5;
+rn = dist*1.5; % no need to change
 
 for i = range_profs
     prof_i = i-1+first_prof;
@@ -149,24 +165,17 @@ for i = range_profs
     end
 end
 
-diff_z_th_multiplier = 2;
-dist_across_profs = 0.15;
 
 li_cand2 = f_analyze_across_profs(sub_pc, sub_i_profs, dist, ...
     diff_z_std_multiplier, diff_z_th_multiplier, dist_across_profs);
 
-% neighbourhood analysis
-rn = dist*1.15; % radius
-n_points_th = 1;
-ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_cand1, 1:3), rn);
-li_cand1 = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_cand1, ins_neigh, n_points_th);
+%% Neighbourhood analysis
+ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_cand1, 1:3), rn1);
+li_cand1 = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_cand1, ins_neigh, n_points_th1);
 
 li_cand = li_cand1 | li_cand2;
 
-rn = dist*3;
-n_points_th = 20;
-ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_cand, 1:3), rn);
-li = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_cand, ins_neigh, n_points_th);
+ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_cand, 1:3), rn2);
+li = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_cand, ins_neigh, n_points_th2);
 
-% li = li_cand;
 end
