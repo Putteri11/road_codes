@@ -140,6 +140,9 @@ for i = range_profs
                 n_pc_profs_cumsum(i - 1), diff_z_std_multiplier, prof_range);
             
             if found_jump_inds
+                
+                li_cand1(jump_inds) = true;
+                
                 next_pc_prof = sub_pc(logical(prof_i+1==sub_i_profs), :);
                 Q = pc_prof(jump_inds(1:end-1:end) - n_pc_profs_cumsum(i - 1), 1:3);
                 ins_neigh_next_prof = f_find_neighbourhood(next_pc_prof, Q, rn);
@@ -153,7 +156,6 @@ for i = range_profs
                         diff_z_std_multiplier*3/4, ins_next_prof_range);
                     
                     if found_jump_inds_next_prof
-                        li_cand1(jump_inds) = true;
                         li_cand1(jump_inds_next_prof) = true;
                     end
                 end

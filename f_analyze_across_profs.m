@@ -8,8 +8,7 @@ sub_n_profs = max(sub_i_profs) - sub_i_profs(1) + 1;
 
 rn = dist*1.1;
 d = 3;
-inds = 1:1:sub_n_pc;
-Q = sub_pc(inds, 1:d);
+Q = sub_pc(1:1:sub_n_pc, 1:d);
 q_inds = length(Q(:,1));
 
 ins_neigh = f_find_neighbourhood(sub_pc, Q, rn, d);
