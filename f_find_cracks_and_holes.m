@@ -1,8 +1,9 @@
 function [ li ] = f_find_cracks_and_holes( sub_pc, sub_i_profs )
 %f_find_cracks_and_holes finds the cracks and holes of a laser scanned road
 % point cloud.
+%
 %   Input:
-%       - Xyzti (n_pc x 5):
+%       - sub_pc (sub_n_pc x 5):
 %           3D point cloud where the rows are sorted based on the time
 %           stamps (fourth column) of the points. Each row corresponds to
 %           a single point [x, y, z, t, i], where
@@ -11,24 +12,27 @@ function [ li ] = f_find_cracks_and_holes( sub_pc, sub_i_profs )
 %               z  is the z-coordinate of the point,
 %               t  is the time stamp of the point, and
 %               i  is the intensity of the point.
-%           Note: Xyzti is assumed to contain only the points classified
+%           Note: sub_pc is assumed to contain only the points classified
 %           as points on the road in the original point cloud.
-%       - ins_prof_pc (n_pc x 1):
-%           Indices of the profiles for the point cloud Xyzti, i.e.
-%           indicates in which profile each of the points belongs, gotten
-%           with the function f_retrProfiles.
+%       - sub_i_profs (sub_n_pc x 1):
+%           Indices of the profiles corresponding to the points in sub_pc;
+%           a subset of the output ins_prof_pc from the function
+%           f_retrProfiles.
+%
 %   Output:
-%       - li (n_pc x 1):
-%           A vector consisting of either a double 0 or 1, where each
-%           point/row i corresponds to the row i in the original point
-%           cloud. The points with a value of 1 are points inside or
-%           near a hole or a crack in the original point cloud.
+%       - li (sub_n_pc x 1):
+%           Logical indices for the input point cloud (sub_pc), where a
+%           logical 1 corresponds to a point classified as a crack or a
+%           hole.
 %
-%   Notes:
-%       - At the moment, ...
-%
-%   TODO (delete this):
-%
+%   Possible improvements:
+%       - Using time stamps and the mirror frequency to find points in the
+%       next profile.
+%       - General efficiency and/or algorithm improvements.
+%           
+%   Author: Joona Savela 25.8.2017
+
+
 
 %% Initialization
 sub_n_pc = length(sub_pc(:,1)); % number of points in point cloud
@@ -120,10 +124,13 @@ rn2 = dist*3;
 n_points_th2 = 20;
 
 %% Calculate/classify crack and hole candidates
-range_profs = 2:sub_n_profs-1;
+range_profs = 2:sub_n_profs-1; % The first and last profiles are often 
+                               % uninteresting, and discarding them reduces
+                               % the number of errors
 
 rn = dist*1.5; % no need to change
 
+% Find candidates along the profiles
 for i = range_profs
     prof_i = i-1+first_prof;
     pc_prof = sub_pc(logical(prof_i==sub_i_profs), :);
@@ -131,8 +138,10 @@ for i = range_profs
     
     if l_prof > 2
         
+        % This while loop along with the variables prof_range and last_ind
+        % ensure all the points in a profile are checked
         prof_range = 2:l_prof-1;
-        last_ind = 1;
+        last_ind = 1; % Initialization 
         
         while last_ind < prof_range(end)
             
@@ -140,13 +149,18 @@ for i = range_profs
                 n_pc_profs_cumsum(i - 1), diff_z_std_multiplier, prof_range);
             
             if found_jump_inds
-                
+                % if found some points, classify them as crack or hole
+                % candidates
                 li_cand1(jump_inds) = true;
                 
+                % Search the next profile with a lower threshold.
+                % This step might not be that necessary
                 next_pc_prof = sub_pc(logical(prof_i+1==sub_i_profs), :);
+                % The query points are the first and the last classified
+                % points from the current profile
                 Q = pc_prof(jump_inds(1:end-1:end) - n_pc_profs_cumsum(i - 1), 1:3);
                 ins_neigh_next_prof = f_find_neighbourhood(next_pc_prof, Q, rn);
-                
+                % Create a range from the first and last found indices
                 ins_next_prof_range = min(ins_neigh_next_prof{1}):max(ins_neigh_next_prof{2})-1;
                 
                 if ~isempty(ins_next_prof_range)
@@ -160,23 +174,26 @@ for i = range_profs
                     end
                 end
             end
-            
+            % update prof_range based on last_ind
             prof_range = last_ind:prof_range(end);
             
         end
     end
 end
 
-
+% Find candidates across the profiles
 li_cand2 = f_analyze_across_profs(sub_pc, sub_i_profs, dist, ...
     diff_z_std_multiplier, diff_z_th_multiplier, dist_across_profs);
 
 %% Neighbourhood analysis
+% Small scale neigh analysis only on li_cand1
 ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_cand1, 1:3), rn1);
 li_cand1 = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_cand1, ins_neigh, n_points_th1);
 
+% combine li_cand1 and li_cand2
 li_cand = li_cand1 | li_cand2;
 
+% "normal" scale neigh analysis
 ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_cand, 1:3), rn2);
 li = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_cand, ins_neigh, n_points_th2);
 
