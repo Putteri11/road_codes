@@ -84,12 +84,12 @@ ticID = tic;
 % point cloud file name
 % fname_pc = 'E:\Combat_roadModelling_data\RoadDataRoamerR3\VT1\160421_125641_VUX-1-HA_etrs.las'; % VT1
 % fname_pc = 'E:\Combat_roadModelling_data\RoadDataRoamerR3\Lahti\160609_150634_VUX-1HA_etrs.las'; % Lahti
-% fname_pc = 'C:\Users\jsa\Desktop\04_EXPORT\Nikkila\161124_162516_VUX-1HA.las'; % Nikkila
+fname_pc = 'C:\Users\jsa\Desktop\04_EXPORT\Nikkila\161124_162516_VUX-1HA.las'; % Nikkila
 % fname_pc = 'C:\Users\jsa\Desktop\04_EXPORT\Nikkila\161124_162617_VUX-1HA.las'; % Nikkila
 % fname_pc = '"C:\Users\jsa\Documents\04_EXPORT\Sipoo170530 - VUX-1HA - 170530_110332_VUX-1HA - originalpoints.las"'; % Sipoo
 
 % home computer
-fname_pc = 'C:\Users\Joona\Documents\GitHub\161124_162516_VUX-1HA.las';
+% fname_pc = 'C:\Users\Joona\Documents\GitHub\161124_162516_VUX-1HA.las';
 
 % load and pre-process point cloud
 [hdr_pc, pc] = las2mat(['-i ', fname_pc, options_las2mat]);
@@ -113,12 +113,12 @@ ci_Traj_t = 2; % time stamps (GPS time)
 % Traj = load('E:\Combat_roadModelling_data\RoadDataRoamerR3\VT1\vt1_21042016.mat'); % VT1
 % Traj = Traj.Traj;
 
-% Traj = load('C:\Users\jsa\Desktop\04_EXPORT\Nikkila\trajektori_02_FULL\SP_24112016_LIVI.mat'); % Nikkila
-% Traj = Traj.Traj; 
+Traj = load('C:\Users\jsa\Desktop\04_EXPORT\Nikkila\trajektori_02_FULL\SP_24112016_LIVI.mat'); % Nikkila
+Traj = Traj.Traj; 
 
 % home computer
-Traj = load('C:\Users\Joona\Documents\GitHub\trajektori_02_FULL\SP_24112016_LIVI.mat');
-Traj = Traj.Traj; 
+% Traj = load('C:\Users\Joona\Documents\GitHub\trajektori_02_FULL\SP_24112016_LIVI.mat');
+% Traj = Traj.Traj; 
 
 %% Organise point cloud into an (nx5) matrix
 
@@ -257,7 +257,7 @@ sub_pc = Xyzti(li_2, :);
 sub_i_profs = ins_prof_pc(li_2);
 
 ticID = tic;
-li = f_find_cracks_and_holes(sub_pc, sub_i_profs);
+li = f_find_cracks_and_holes(sub_pc, sub_i_profs, f_mirror);
 t_elapsed_profRetr = toc(ticID);
 disp(['Defect retrieval: ', num2str(t_elapsed_profRetr), ' seconds.'])
 
@@ -283,7 +283,7 @@ zlabel('z');
 
 ticID = tic;
 
-li = f_find_cracks_and_holes(sub_pc, sub_i_profs);
+li = f_find_cracks_and_holes(sub_pc, sub_i_profs, f_mirror);
 t_elapsed_profRetr = toc(ticID);
 disp(['Defect retrieval: ', num2str(t_elapsed_profRetr), ' seconds.'])
 

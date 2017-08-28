@@ -1,4 +1,4 @@
-function [ li ] = f_find_cracks_and_holes( sub_pc, sub_i_profs )
+function [ li ] = f_find_cracks_and_holes( sub_pc, sub_i_profs, f_mirror )
 %f_find_cracks_and_holes finds the cracks and holes of a laser scanned road
 % point cloud.
 %
@@ -18,6 +18,8 @@ function [ li ] = f_find_cracks_and_holes( sub_pc, sub_i_profs )
 %           Indices of the profiles corresponding to the points in sub_pc;
 %           a subset of the output ins_prof_pc from the function
 %           f_retrProfiles.
+%       - f_mirror:
+%           The mirror frequency of the scanner
 %
 %   Output:
 %       - li (sub_n_pc x 1):
@@ -28,13 +30,16 @@ function [ li ] = f_find_cracks_and_holes( sub_pc, sub_i_profs )
 %   Possible improvements:
 %       - Using time stamps and the mirror frequency to find points in the
 %       next profile.
-%       - General efficiency and/or algorithm improvements.
+%       - Reduce the amount of unnecessary calculations
+%       - Other efficiency and/or algorithm improvements.
 %           
-%   Author: Joona Savela 25.8.2017
+%   Author: Joona Savela 28.8.2017
 
 
 
 %% Initialization
+ticID = tic;
+
 sub_n_pc = length(sub_pc(:,1)); % number of points in point cloud
 li_cand1 = false(sub_n_pc, 1); % candidate 1 preallocation
 first_prof = sub_i_profs(1); % first profile
@@ -54,8 +59,10 @@ end
 
 n_pc_profs_cumsum = cumsum(n_pc_profs); % used for determing the index of
                                         % sub_pc inside a profile
-
+t_elapsed = toc(ticID);
+disp(['Initialization: ', num2str(t_elapsed), ' seconds.'])
 %% Find an approximate distance between profiles (dist)
+ticID = tic;
 % take a small subset of the point cloud for calculations
 n_pc_range = 1:round(mean(n_pc_profs)*2); 
 sub_sub_pc = sub_pc(n_pc_range, :);
@@ -110,12 +117,17 @@ dist_arr = dist_arr(abs(diff(dist_arr))<0.02); % filter some candidates out
 
 dist = mean(dist_arr);
 
+t_elapsed = toc(ticID);
+disp(['Dist calculation: ', num2str(t_elapsed), ' seconds.'])
 %% Essential parameters
 diff_z_std_multiplier = 2.5; % Used for classifying along the profile
 diff_z_th_multiplier = 2; % Used for classifying across profiles along with 
                           % diff_z_std_multiplier
 dist_across_profs = 0.15; % determines how many meters are taken into 
                           % consideration when classifying across profile
+timestamp_th = 0.0000075; % Threshold for the absolute difference between 
+                          % the difference in timestamps and the period time
+                          % (1/f_mirror)
 % radius and a threshold for very near neighbourhood analysis
 rn1 = dist*1.15; 
 n_points_th1 = 1;
@@ -124,6 +136,7 @@ rn2 = dist*3;
 n_points_th2 = 20;
 
 %% Calculate/classify crack and hole candidates
+ticID = tic;
 range_profs = 2:sub_n_profs-1; % The first and last profiles are often 
                                % uninteresting, and discarding them reduces
                                % the number of errors
@@ -181,11 +194,19 @@ for i = range_profs
     end
 end
 
-% Find candidates across the profiles
-li_cand2 = f_analyze_across_profs(sub_pc, sub_i_profs, dist, ...
-    diff_z_std_multiplier, diff_z_th_multiplier, dist_across_profs);
+t_elapsed = toc(ticID);
+disp(['Find candidates 1: ', num2str(t_elapsed), ' seconds.'])
 
+ticID = tic;
+% Find candidates across the profiles
+li_cand2 = f_analyze_across_profs(sub_pc, sub_i_profs, n_pc_profs_cumsum, ...
+    dist, diff_z_std_multiplier, diff_z_th_multiplier, dist_across_profs, ...
+    f_mirror, timestamp_th);
+
+t_elapsed = toc(ticID);
+disp(['Find candidates 2: ', num2str(t_elapsed), ' seconds.'])
 %% Neighbourhood analysis
+ticID = tic;
 % Small scale neigh analysis only on li_cand1
 ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_cand1, 1:3), rn1);
 li_cand1 = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_cand1, ins_neigh, n_points_th1);
@@ -197,4 +218,6 @@ li_cand = li_cand1 | li_cand2;
 ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_cand, 1:3), rn2);
 li = f_neighbourhood_analysis(sub_pc, sub_i_profs, li_cand, ins_neigh, n_points_th2);
 
+t_elapsed = toc(ticID);
+disp(['Neigh analysis: ', num2str(t_elapsed), ' seconds.'])
 end

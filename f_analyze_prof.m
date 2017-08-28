@@ -7,9 +7,9 @@ function [ inds, on_top, last_ind ] = f_analyze_prof( pc_prof, n_pc_prev, ...
 %   Input: 
 %       - pc_prof (l_prof x 5):
 %           A single profile from the point cloud (sub_pc) of the road.
-%       - n_pc_prev (1 x 1):
+%       - n_pc_prev:
 %           Number of points before this profile.
-%       - diff_z_std_multiplier (1 x 1):
+%       - diff_z_std_multiplier:
 %           Parameter from f_find_cracks_and_holes, used for thresholding.
 %       - prof_range (1 x [length from last_ind to the end of the profile]):
 %           Actual indices of the profile for the part of the profile in
@@ -18,16 +18,16 @@ function [ inds, on_top, last_ind ] = f_analyze_prof( pc_prof, n_pc_prev, ...
 %   Output:
 %       - inds (l_prof x 1):
 %            Point cloud (sub_pc) indices of positively classified points.
-%            Note: actual length is very likely to be less than l_prof due
+%            NOTE: actual length is very likely to be less than l_prof due
 %            to preallocation of memory and the removal of zero values.
-%       - on_top (1 x 1):
+%       - on_top:
 %           A flag to determine that some points were positively
 %           classified.
-%       - last_ind (1 x 1):
+%       - last_ind:
 %           The index where this profile analysis was halted due to flag
 %           (on_top) being set to true, or the last index of the profile.
 %
-%   Author: Joona Savela 25.8.2017
+%   Author: Joona Savela 28.8.2017
 
 
 diff_z = diff(movmean(pc_prof(:, 3), 5));

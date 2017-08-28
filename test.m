@@ -124,24 +124,34 @@ std_diff_z_th = 2.5;
 
 li_cand = false(sub_n_pc, 1);
 helper = cumsum(n_pc_profs);
+next_pc_prof = sub_pc(logical(sub_i_profs==2-1+first_prof), :);
+next_l_prof = length(next_pc_prof(:,1));
+% next_prof_ranges = 
+next_prof_range = 2:next_l_prof-1;
 
 for i=2:sub_n_profs-1
     prof_i = i-1+first_prof;
-    pc_prof = sub_pc(logical(prof_i==sub_i_profs), :);
-    l_prof = length(pc_prof(:, 1));
+    pc_prof = next_pc_prof;
+    l_prof = next_l_prof;
+    next_pc_prof = sub_pc(logical(sub_i_profs==prof_i+1), :);
+    next_l_prof = length(next_pc_prof(:,1));
     
     if l_prof > 2
         
-        prof_range = 2:l_prof-1;
+        prof_range = next_prof_range;
         last_ind = 1;
         
+        next_prof_range = 2:next_l_prof-1;
+
         while last_ind < prof_range(end)
             
             [jump_inds, found_jump_inds, last_ind] = f_analyze_prof(pc_prof, ...
                 helper(i - 1), std_diff_z_th, prof_range);
             
             if found_jump_inds 
-                next_pc_prof = sub_pc(logical(sub_i_profs==prof_i+1), :);
+                
+                li_cand(jump_inds) = true;
+                
                 Q = pc_prof(jump_inds(1:end-1:end) - helper(i - 1), 1:3);
                 rn = dist*1.5;
                 ins_neigh_next_prof = f_find_neighbourhood(next_pc_prof, Q, rn);
@@ -154,9 +164,13 @@ for i=2:sub_n_profs-1
                         std_diff_z_th*4/5, ins_next_prof_range);
                     
                     if found_jump_inds_next_prof
-                        li_cand(jump_inds) = true;
                         li_cand(jump_inds_next_prof) = true;
                     end
+                    
+                    for next_i = ins_next_prof_range
+                        next_prof_range = next_prof_range(next_prof_range~=next_i);
+                    end
+                    
                 end
             end
             
@@ -325,19 +339,15 @@ close all;
 
 
 %%
-% li_test = cand.li_ptsProf_posHeightJump;
-% disp(sum(li_test));
-% % indices = 1:n_pc;
-% % mid_i = indices(logical(sub_i_profs==i_prof));
-% mid_i = cumsum_n_pc_profs(i_prof - 1);
-% offset = 5e5;
-% start_i = mid_i - offset;
-% end_i = mid_i + offset;
-%
+
+timestamp_th = 0.0000075;
+
+li_test = abs((sub_pc(:,4)-sub_pc(100,4))-1/f_mirror)<timestamp_th;
+
 % n_skip = 10;
-% ind_fig = ind_fig + 1;
-% f_initFig(ind_fig, 'k')
-% fscatter3_edit_Joona(Xyzti(start_i:n_skip:end_i, 1), Xyzti(start_i:n_skip:end_i, 2), Xyzti(start_i:n_skip:end_i, 3), Xyzti(start_i:n_skip:end_i, 5), cmap);
-% plot3(Xyzi_prof(li_test, 1), Xyzi_prof(li_test, 2), Xyzi_prof(li_test, 3), 'wo', 'linewidth', 1, 'markersize', 6);
+ind_fig = ind_fig + 1;
+f_initFig(ind_fig, 'w')
+fscatter3(sub_pc(99:101, 1), sub_pc(99:101, 2), sub_pc(99:101, 3), sub_pc(99:101, 5), cmap);
+fscatter3(sub_pc(li_test, 1), sub_pc(li_test, 2), sub_pc(li_test, 3), sub_pc(li_test, 5), cmap);
 
 
