@@ -159,7 +159,7 @@ for prof_i = first_prof:max(sub_i_profs)
         diff_z_th * diff_z_th_multiplier;
 end
 
-dist_across_profs = 0.15;
+dist_across_profs = 0.1;
 prof_gap = round(dist_across_profs/dist);
 neg_jump_inds = zeros(sub_n_pc, prof_gap);
 pos_jump_inds = zeros(sub_n_pc, prof_gap);
@@ -175,6 +175,7 @@ li_pos_jump = false(sub_n_pc, 1);
 % z_diff_arr = zeros(n_neigh, 1);
 
 timestamp_th = 0.0000075;
+dist_th = 0.08;
 
 for i=2:sub_n_profs-1
     prof_i = i-1+first_prof;
@@ -185,14 +186,12 @@ for i=2:sub_n_profs-1
     for ii = 1:l_prof
         ind = n_pc_profs_cumsum(i-1)+ii;
         
-        range_start = max(1, ii-3);
-        range_end = min(l_prof, ii+3);
+        li_this_prof = abs( pc_prof(:,4)-pc_prof(ii,4) ) < timestamp_th;
+        li_next_prof = abs( (next_pc_prof(:,4)-pc_prof(ii,4))-1/f_mirror ) ...
+            < timestamp_th;
         
-        inds_this_prof = range_start:range_end;
-        linds_next_prof = abs((next_pc_prof(:,4)-pc_prof(ii,4))-1/f_mirror)<timestamp_th;
-        
-        z = pc_prof(inds_this_prof, 3);
-        z_next = next_pc_prof(linds_next_prof, 3);
+        z = pc_prof(li_this_prof, 3);
+        z_next = next_pc_prof(li_next_prof, 3);
         
         z_mean = mean(z);
         z_mean_next = mean(z_next);
@@ -235,70 +234,107 @@ for i=2:sub_n_profs-1
             found_jump_inds = false;
         end
         
-        if pos_found && ii==l_prof
-            neg_col_i = mod(col_i - 2 + prof_gap, prof_gap) + 1;
-            if sum(neg_jump_inds(:, neg_col_i))>0
-                neg_jump_inds2 = reshape(neg_jump_inds(:, neg_col_i), [], 1);
-                pos_jump_inds2 = reshape(pos_jump_inds(:, col_i), [], 1);
-                neg_jump_inds2 = neg_jump_inds2(neg_jump_inds2>0);
-                pos_jump_inds2 = pos_jump_inds2(pos_jump_inds2>0);
-                neg_jump_inds3 = zeros(length(neg_jump_inds2), 1);
-                pos_jump_inds3 = zeros(length(pos_jump_inds2), 1);
-                flag = false;
-                
-                for neg_i = 1:length(neg_jump_inds2)
-                    for pos_i = 1:length(pos_jump_inds2)
-                        neg_point = sub_pc(neg_jump_inds2(neg_i), 1:2);
-                        pos_point = sub_pc(pos_jump_inds2(pos_i), 1:2);
-                        d_test = sqrt(sum(diff(vertcat(neg_point, pos_point)).^2));
-                        %                     disp(d_test);
-                        if d_test < dist_across_profs
-                            pos_jump_inds3(pos_i) = pos_jump_inds2(pos_i);
-                            flag = true;
-                        end
-                    end
-                    if flag
-                        neg_jump_inds3(neg_i) = neg_jump_inds2(neg_i);
-                        flag = false;
-                    end
-                end
-                
-                neg_jump_inds3 = neg_jump_inds3(neg_jump_inds3>0);
-                pos_jump_inds3 = pos_jump_inds3(pos_jump_inds3>0);
-                
-                if abs(1 - length(pos_jump_inds3)/length(neg_jump_inds3)) < 0.5
-                    li_neg_jump(neg_jump_inds3) = true;
-                    li_pos_jump(pos_jump_inds3) = true;
-                end
-                
-                if sum(neg_jump_inds(:, col_i))==0
-                    neg_found = false;
-                end
-                pos_found = false;
-                neg_found_prof = 0;
-                neg_jump_inds(:, neg_col_i) = zeros(sub_n_pc, 1);
-                pos_jump_inds(:, col_i) = zeros(sub_n_pc, 1);
-            end
-        end
-        
-        %     ticID = tic;
-        if neg_prof_diff <= prof_gap && ii==l_prof
-            neg_jump_inds(:, mod(col_i, prof_gap) + 1) = zeros(sub_n_pc, 1);
-        end
-        %     t_elapsed = toc(ticID);
-        %     disp(['Test elapsed: ', num2str(t_elapsed), ' seconds.'])
-        
-        %     z_diff_arr(i_q) = z_prof_diff;
-        
-        %     disp(['difference: ', num2str(z_diff)]);
     end
+    
+    if pos_found 
+        neg_col_i = mod(col_i - 2 + prof_gap, prof_gap) + 1;
+        if sum(neg_jump_inds(:, neg_col_i))>0
+            neg_jump_inds2 = reshape(neg_jump_inds(:, neg_col_i), [], 1);
+            pos_jump_inds2 = reshape(pos_jump_inds(:, col_i), [], 1);
+            neg_jump_inds2 = neg_jump_inds2(neg_jump_inds2>0);
+            pos_jump_inds2 = pos_jump_inds2(pos_jump_inds2>0);
+            neg_jump_inds3 = zeros(length(neg_jump_inds2), 1);
+            pos_jump_inds3 = zeros(length(pos_jump_inds2), 1);
+            flag = false;
+            
+            for neg_i = 1:length(neg_jump_inds2)
+                for pos_i = 1:length(pos_jump_inds2)
+                    neg_point = sub_pc(neg_jump_inds2(neg_i), 1:2);
+                    pos_point = sub_pc(pos_jump_inds2(pos_i), 1:2);
+                    d_test = sqrt(sum(diff(vertcat(neg_point, pos_point)).^2));
+                    if d_test < dist_across_profs
+                        pos_jump_inds3(pos_i) = pos_jump_inds2(pos_i);
+                        flag = true;
+                    end
+                end
+                if flag
+                    neg_jump_inds3(neg_i) = neg_jump_inds2(neg_i);
+                    flag = false;
+                end
+            end
+            
+            neg_jump_inds3 = neg_jump_inds3(neg_jump_inds3>0);
+            pos_jump_inds3 = pos_jump_inds3(pos_jump_inds3>0);
+            
+            if ~isempty(neg_jump_inds3)
+                neg_group_end_inds = vertcat(...
+                    find(diff(diff(neg_jump_inds3))<0), length(neg_jump_inds3));
+                neg_group_start_ind = 1;
+                for i_end_inds = 1:length(neg_group_end_inds)
+                    test_dist = sqrt(sum(diff(vertcat(...
+                        sub_pc(neg_jump_inds3(neg_group_start_ind), 1:2), ...
+                        sub_pc(neg_jump_inds3(neg_group_end_inds(i_end_inds)), 1:2))).^2));
+                    neg_group_start_ind = neg_group_end_inds(i_end_inds) + 1;
+                    if test_dist > dist_th
+                        li_neg_jump(neg_jump_inds3) = true;
+                    end
+                end
+            end
+            
+            if ~isempty(pos_jump_inds3)
+                pos_group_end_inds = vertcat(...
+                    find(diff(diff(pos_jump_inds3))<0), length(pos_jump_inds3));
+                pos_group_start_ind = 1;
+                for i_end_inds = 1:length(pos_group_end_inds)
+                    test_dist = sqrt(sum(diff(vertcat(...
+                        sub_pc(pos_jump_inds3(pos_group_start_ind), 1:2), ...
+                        sub_pc(pos_jump_inds3(pos_group_end_inds(i_end_inds)), 1:2))).^2));
+                    pos_group_start_ind = pos_group_end_inds(i_end_inds) + 1;
+                    if test_dist > dist_th
+                        li_pos_jump(pos_jump_inds3) = true;
+                    end
+                end
+            end
+        
+            if sum(neg_jump_inds(:, col_i))==0
+                neg_found = false;
+            end
+            neg_found_prof = 0;
+            pos_found = false;
+            neg_jump_inds(:, neg_col_i) = zeros(sub_n_pc, 1);
+            pos_jump_inds(:, col_i) = zeros(sub_n_pc, 1);
+        end
+    end
+    
+    if neg_prof_diff <= prof_gap 
+        neg_jump_inds(:, mod(col_i, prof_gap) + 1) = zeros(sub_n_pc, 1);
+    end
+    
+    
 end
 
 toc
 
 % figure(n_neigh)
 % plot(z_diff_arr, 'b.');
+%%
+neg_jump_test2 = neg_jump_test(1:end);
 
+i_detected = vertcat(find(diff(diff(neg_jump_test2))<0), length(neg_jump_test2));
+ii = 1;
+
+for i = 1:length(i_detected)
+    test_dist = sqrt(sum(diff(vertcat(sub_pc(neg_jump_test2(ii), 1:2), sub_pc(neg_jump_test2(i_detected(i)), 1:2))).^2));
+    disp(test_dist);
+    ii = i_detected(i) + 1;
+end
+
+
+figure();
+plot(neg_jump_test2, 'b.');
+hold on;
+plot(i_detected, neg_jump_test2(i_detected), 'ro');
+hold off;
 
 %% Plotting (scatter)
 n_skip = 1;
@@ -320,9 +356,10 @@ fscatter3_edit_Joona(sub_pc(1:n_skip:end, 1), sub_pc(1:n_skip:end, 2), sub_pc(1:
 % toc
 
 % tic
-% li1 = f_analyze_across_profs(sub_pc, sub_i_profs, dist, ...
-%     diff_z_std_multiplier, diff_z_th_multiplier, dist_across_profs);
-% plot3(sub_pc(li1, 1), sub_pc(li1, 2), sub_pc(li1, 3), 'ro', 'markersize', 6);
+% li1 = f_analyze_across_profs(sub_pc, sub_i_profs, n_pc_profs_cumsum, ...
+%     dist, diff_z_std_multiplier, diff_z_th_multiplier, dist_across_profs, ...
+%     f_mirror, timestamp_th);
+% plot3(sub_pc(li1, 1), sub_pc(li1, 2), sub_pc(li1, 3), 'ko', 'markersize', 6);
 % toc
 
 % ins_neigh = f_find_neighbourhood(sub_pc, sub_pc(li_neg_jump, :), 2*dist);
@@ -336,10 +373,6 @@ plot3(sub_pc(li_neg_jump, 1), sub_pc(li_neg_jump, 2), sub_pc(li_neg_jump, 3), 'b
 plot3(sub_pc(li_pos_jump, 1), sub_pc(li_pos_jump, 2), sub_pc(li_pos_jump, 3), 'ro', 'markersize', 6);
 
 
-% for i_q=1:n_neigh
-%     plot(P(ins_neigh{i_q}, 1), P(ins_neigh{i_q}, 2), 'ro', 'markersize', 6);
-%     plot(Q(i_q, 1)+xp,Q(i_q, 2)+yp ,'m', 'linewidth', 2);
-% end
-% plot(Q(:, 1), Q(:, 2), 'kx', 'markersize', 20, 'linewidth', 2);
-% plot(P(test_arr, 1), P(test_arr, 2), 'd', 'markersize', 8, 'color', 0.5*[1 1 1], 'linewidth', 2);
+% plot3(sub_pc(neg_jump_test, 1), sub_pc(neg_jump_test, 2), sub_pc(neg_jump_test, 3), 'bo', 'markersize', 6);
+% plot3(sub_pc(pos_jump_test, 1), sub_pc(pos_jump_test, 2), sub_pc(pos_jump_test, 3), 'ro', 'markersize', 6);
 

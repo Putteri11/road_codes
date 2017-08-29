@@ -47,7 +47,16 @@ on_top = false; % Flag for neutral/flat points after positive points are found
 
 last_ind = prof_range(end); % in case nothing is found
 
-for ii = prof_range
+for i = 1:length(prof_range)
+    ii = prof_range(i);
+    
+    if (i > 1) && (ii - prof_range(i - 1) > 1)
+        on_top = true;
+        inds = []; % TODO: fix this
+        last_ind = ii;
+        break;
+    end
+    
     index = n_pc_prev + ii; % index of the point cloud (sub_pc)
     
     % thresholding algorithm

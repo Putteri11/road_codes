@@ -1,6 +1,6 @@
 function [ li ] = f_analyze_across_profs( sub_pc, sub_i_profs, n_pc_profs_cumsum, ...
     dist, diff_z_std_multiplier, diff_z_th_multiplier, dist_across_profs, ...
-    f_mirror, timestamp_th )
+    f_mirror, timestamp_th, dist_th )
 %f_analyze_across_profs classifies defects across the profiles of the point
 %cloud.
 %
@@ -58,9 +58,9 @@ for i_prof = first_prof:max(sub_i_profs)
         diff_z_th * diff_z_th_multiplier;
 end
 
-prof_gap = round(dist_across_profs/dist); % Number of profiles taken into
-% consideration when extracting
-% candidate points
+% Number of profiles taken into consideration when extracting candidate points
+prof_gap = round(dist_across_profs/dist); 
+
 % Placeholders and flags used for classifying candidate points
 neg_jump_inds = zeros(sub_n_pc, prof_gap);
 pos_jump_inds = zeros(sub_n_pc, prof_gap);
@@ -95,14 +95,12 @@ for i=2:sub_n_profs-1 % skip the first and the last profile
         
         % Calculate the difference between the average z coordinates in
         % this and the next profile
-        range_start = max(1, ii-3);
-        range_end = min(l_prof, ii+3);
+        li_this_prof = abs( pc_prof(:,4)-pc_prof(ii,4) ) < timestamp_th;
+        li_next_prof = abs( (next_pc_prof(:,4)-pc_prof(ii,4))-1/f_mirror ) ...
+            < timestamp_th;
         
-        inds_this_prof = range_start:range_end;
-        linds_next_prof = abs((next_pc_prof(:,4)-pc_prof(ii,4))-1/f_mirror)<timestamp_th;
-        
-        z = pc_prof(inds_this_prof, 3);
-        z_next = next_pc_prof(linds_next_prof, 3);
+        z = pc_prof(li_this_prof, 3);
+        z_next = next_pc_prof(li_next_prof, 3);
         
         z_mean = mean(z);
         z_mean_next = mean(z_next);
@@ -147,17 +145,15 @@ for i=2:sub_n_profs-1 % skip the first and the last profile
             pos_jump_inds3 = zeros(length(pos_jump_inds2), 1);
             flag = false;
             
-            % Check that the points are close to each other
+            % Check that the points (neg to pos) are close to each other
             for neg_i = 1:length(neg_jump_inds2)
                 for pos_i = 1:length(pos_jump_inds2)
-                    if pos_jump_inds3(pos_i)==0
-                        neg_point = sub_pc(neg_jump_inds2(neg_i), 1:2);
-                        pos_point = sub_pc(pos_jump_inds2(pos_i), 1:2);
-                        d_test = sqrt(sum(diff(vertcat(neg_point, pos_point)).^2));
-                        if d_test < dist_across_profs
-                            pos_jump_inds3(pos_i) = pos_jump_inds2(pos_i);
-                            flag = true;
-                        end
+                    neg_point = sub_pc(neg_jump_inds2(neg_i), 1:2);
+                    pos_point = sub_pc(pos_jump_inds2(pos_i), 1:2);
+                    d_test = sqrt(sum(diff(vertcat(neg_point, pos_point)).^2));
+                    if d_test < dist_across_profs
+                        pos_jump_inds3(pos_i) = pos_jump_inds2(pos_i);
+                        flag = true;
                     end
                 end
                 if flag
@@ -169,11 +165,50 @@ for i=2:sub_n_profs-1 % skip the first and the last profile
             neg_jump_inds3 = neg_jump_inds3(neg_jump_inds3>0);
             pos_jump_inds3 = pos_jump_inds3(pos_jump_inds3>0);
             
-            % Check that the closeby positive and negative groups are
-            % roughly the same size
-            if abs(1 - length(pos_jump_inds3)/length(neg_jump_inds3)) < 0.5
-                li_neg_jump(neg_jump_inds3) = true;
-                li_pos_jump(pos_jump_inds3) = true;
+            % Divide the found neg candidates into groups of subsequent
+            % points, and check that their physical 2D length is above a
+            % threshold
+            if ~isempty(neg_jump_inds3)
+                
+                % End indices of the groups
+                neg_group_end_inds = vertcat(...
+                    find(diff(diff(neg_jump_inds3))<0), length(neg_jump_inds3));
+                
+                % Start index of the groups, gets updated within the loop
+                % below
+                neg_group_start_ind = 1;
+                
+                for i_end_inds = 1:length(neg_group_end_inds)
+                    % Physical 2D distance between the start and the end of
+                    % a group
+                    test_dist = sqrt(sum(diff(vertcat(...
+                        sub_pc(neg_jump_inds3(neg_group_start_ind), 1:2), ...
+                        sub_pc(neg_jump_inds3(neg_group_end_inds(i_end_inds)), 1:2))).^2));
+                    
+                    % Update the start index
+                    neg_group_start_ind = neg_group_end_inds(i_end_inds) + 1;
+                    
+                    % Apply threshold and classify point
+                    if test_dist > dist_th
+                        li_neg_jump(neg_jump_inds3) = true;
+                    end
+                end
+            end
+            
+            % The same for positive jumps
+            if ~isempty(pos_jump_inds3)
+                pos_group_end_inds = vertcat(...
+                    find(diff(diff(pos_jump_inds3))<0), length(pos_jump_inds3));
+                pos_group_start_ind = 1;
+                for i_end_inds = 1:length(pos_group_end_inds)
+                    test_dist = sqrt(sum(diff(vertcat(...
+                        sub_pc(pos_jump_inds3(pos_group_start_ind), 1:2), ...
+                        sub_pc(pos_jump_inds3(pos_group_end_inds(i_end_inds)), 1:2))).^2));
+                    pos_group_start_ind = pos_group_end_inds(i_end_inds) + 1;
+                    if test_dist > dist_th
+                        li_pos_jump(pos_jump_inds3) = true;
+                    end
+                end
             end
             
             % If there are negative jump groups in this profile, leave
@@ -190,7 +225,7 @@ for i=2:sub_n_profs-1 % skip the first and the last profile
         end
     end
     
-    % Reset the least recently used column of neg_jump_inds to zeros
+    % Reset the least recently ("oldest") used column of neg_jump_inds to zeros
     if neg_prof_diff <= prof_gap
         neg_jump_inds(:, mod(col_i, prof_gap) + 1) = zeros(sub_n_pc, 1);
     end

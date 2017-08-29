@@ -128,6 +128,8 @@ dist_across_profs = 0.15; % determines how many meters are taken into
 timestamp_th = 0.0000075; % Threshold for the absolute difference between 
                           % the difference in timestamps and the period time
                           % (1/f_mirror)
+dist_th = 0.08; % Threshold (in meters) for the physical 2D distance of 
+                % crack candidates that go along the profile
 % radius and a threshold for very near neighbourhood analysis
 rn1 = dist*1.15; 
 n_points_th1 = 1;
@@ -201,7 +203,7 @@ ticID = tic;
 % Find candidates across the profiles
 li_cand2 = f_analyze_across_profs(sub_pc, sub_i_profs, n_pc_profs_cumsum, ...
     dist, diff_z_std_multiplier, diff_z_th_multiplier, dist_across_profs, ...
-    f_mirror, timestamp_th);
+    f_mirror, timestamp_th, dist_th);
 
 t_elapsed = toc(ticID);
 disp(['Find candidates 2: ', num2str(t_elapsed), ' seconds.'])

@@ -22,8 +22,8 @@ disp(['Time elapsed: ', num2str(t_elapsed_profRetr), ' seconds.'])
 %
 %%
 
-[li_1, pc_1] = Carve_Several_2D_Objects_edit_Joona(Xyzti(1:10:end, 1:2), 3); % haetaan alueet harvemmasta pilvestä
-li_2 = logical(Carve_Several_2D_Objects(Xyzti(:, 1:2), pc_1)); % haetaan alueissa olevat pisteet koko pilvestä
+% [li_1, pc_1] = Carve_Several_2D_Objects_edit_Joona(Xyzti(1:10:end, 1:2), 3); % haetaan alueet harvemmasta pilvestä
+% li_2 = logical(Carve_Several_2D_Objects(Xyzti(:, 1:2), pc_1)); % haetaan alueissa olevat pisteet koko pilvestä
 
 %%
 tic
@@ -126,7 +126,6 @@ li_cand = false(sub_n_pc, 1);
 helper = cumsum(n_pc_profs);
 next_pc_prof = sub_pc(logical(sub_i_profs==2-1+first_prof), :);
 next_l_prof = length(next_pc_prof(:,1));
-% next_prof_ranges = 
 next_prof_range = 2:next_l_prof-1;
 
 for i=2:sub_n_profs-1
@@ -135,14 +134,13 @@ for i=2:sub_n_profs-1
     l_prof = next_l_prof;
     next_pc_prof = sub_pc(logical(sub_i_profs==prof_i+1), :);
     next_l_prof = length(next_pc_prof(:,1));
+    prof_range = next_prof_range;
+    next_prof_range = 2:next_l_prof-1;
     
-    if l_prof > 2
+    if ~isempty(prof_range)
         
-        prof_range = next_prof_range;
         last_ind = 1;
         
-        next_prof_range = 2:next_l_prof-1;
-
         while last_ind < prof_range(end)
             
             [jump_inds, found_jump_inds, last_ind] = f_analyze_prof(pc_prof, ...
