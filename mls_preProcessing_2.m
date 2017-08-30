@@ -84,9 +84,9 @@ ticID = tic;
 % point cloud file name
 % fname_pc = 'E:\Combat_roadModelling_data\RoadDataRoamerR3\VT1\160421_125641_VUX-1-HA_etrs.las'; % VT1
 % fname_pc = 'E:\Combat_roadModelling_data\RoadDataRoamerR3\Lahti\160609_150634_VUX-1HA_etrs.las'; % Lahti
-fname_pc = 'C:\Users\jsa\Desktop\04_EXPORT\Nikkila\161124_162516_VUX-1HA.las'; % Nikkila
+% fname_pc = 'C:\Users\jsa\Desktop\04_EXPORT\Nikkila\161124_162516_VUX-1HA.las'; % Nikkila
 % fname_pc = 'C:\Users\jsa\Desktop\04_EXPORT\Nikkila\161124_162617_VUX-1HA.las'; % Nikkila
-% fname_pc = '"C:\Users\jsa\Documents\04_EXPORT\Sipoo170530 - VUX-1HA - 170530_110332_VUX-1HA - originalpoints.las"'; % Sipoo
+fname_pc = '"C:\Users\jsa\Documents\04_EXPORT\Sipoo170530 - VUX-1HA - 170530_110332_VUX-1HA - originalpoints.las"'; % Sipoo
 
 % home computer
 % fname_pc = 'C:\Users\Joona\Documents\GitHub\161124_162516_VUX-1HA.las';

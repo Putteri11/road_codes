@@ -19,7 +19,7 @@ function [ li ] = f_find_cracks_and_holes( sub_pc, sub_i_profs, f_mirror )
 %           a subset of the output ins_prof_pc from the function
 %           f_retrProfiles.
 %       - f_mirror:
-%           The mirror frequency of the scanner
+%           The mirror frequency of the scanner.
 %
 %   Output:
 %       - li (sub_n_pc x 1):
@@ -30,10 +30,14 @@ function [ li ] = f_find_cracks_and_holes( sub_pc, sub_i_profs, f_mirror )
 %   Possible improvements:
 %       - Using time stamps and the mirror frequency to find points in the
 %       next profile.
-%       - Reduce the amount of unnecessary calculations
+%       - Combine some of the calculations that are being done both in
+%       along the profile classification and across the profile
+%       classification. This might require changing the structure of all
+%       three functions.
+%       - Reducing the number of parameters!
 %       - Other efficiency and/or algorithm improvements.
 %           
-%   Author: Joona Savela 28.8.2017
+%   Author: Joona Savela 30.8.2017
 
 
 
@@ -126,12 +130,12 @@ diff_z_th_multiplier = 2; % Used for classifying across profiles along with
 dist_across_profs = 0.15; % determines how many meters are taken into 
                           % consideration when classifying across profile
 timestamp_th = 0.0000075; % Threshold for the absolute difference between 
-                          % the difference in timestamps and the period time
-                          % (1/f_mirror)
+                          % the difference in timestamps and the mirror 
+                          % period time (1/f_mirror)
 dist_th = 0.08; % Threshold (in meters) for the physical 2D distance of 
                 % crack candidates that go along the profile
 % radius and a threshold for very near neighbourhood analysis
-rn1 = dist*1.15; 
+rn1 = dist*1.2; 
 n_points_th1 = 1;
 % radius and a threshold for normal neighbourhood analysis
 rn2 = dist*3;
@@ -143,19 +147,28 @@ range_profs = 2:sub_n_profs-1; % The first and last profiles are often
                                % uninteresting, and discarding them reduces
                                % the number of errors
 
-rn = dist*1.5; % no need to change
+rn = dist*1.2; % no need to change (probably)
+% Store important values of the next profile and update current profile
+% based on them
+next_pc_prof = sub_pc(logical(sub_i_profs==2-1+first_prof), :);
+next_prof_range = 2:length(next_pc_prof(:,1))-1;
 
 % Find candidates along the profiles
 for i = range_profs
     prof_i = i-1+first_prof;
-    pc_prof = sub_pc(logical(prof_i==sub_i_profs), :);
-    l_prof = length(pc_prof(:, 1));
     
-    if l_prof > 2
+    % get the values of this prof
+    pc_prof = next_pc_prof;
+    prof_range = next_prof_range;
+    
+    % update the values of the next prof
+    next_pc_prof = sub_pc(logical(sub_i_profs==prof_i+1), :);
+    next_prof_range = 2:length(next_pc_prof(:,1))-1;
+    
+    if ~isempty(prof_range)
         
         % This while loop along with the variables prof_range and last_ind
         % ensure all the points in a profile are checked
-        prof_range = 2:l_prof-1;
         last_ind = 1; % Initialization 
         
         while last_ind < prof_range(end)
@@ -163,14 +176,14 @@ for i = range_profs
             [jump_inds, found_jump_inds, last_ind] = f_analyze_prof(pc_prof, ...
                 n_pc_profs_cumsum(i - 1), diff_z_std_multiplier, prof_range);
             
-            if found_jump_inds
+            if found_jump_inds > 0
                 % if found some points, classify them as crack or hole
                 % candidates
-                li_cand1(jump_inds) = true;
+                if found_jump_inds == 1
+                    li_cand1(jump_inds) = true;
+                end
                 
                 % Search the next profile with a lower threshold.
-                % This step might not be that necessary
-                next_pc_prof = sub_pc(logical(prof_i+1==sub_i_profs), :);
                 % The query points are the first and the last classified
                 % points from the current profile
                 Q = pc_prof(jump_inds(1:end-1:end) - n_pc_profs_cumsum(i - 1), 1:3);
@@ -180,12 +193,35 @@ for i = range_profs
                 
                 if ~isempty(ins_next_prof_range)
                     
-                    [jump_inds_next_prof, found_jump_inds_next_prof, ~] = ...
-                        f_analyze_prof(next_pc_prof, n_pc_profs_cumsum(i), ...
-                        diff_z_std_multiplier*3/4, ins_next_prof_range);
+                    % Make a similar while loop for the part of the next
+                    % profile in inspection as for this profile
+                    next_last_ind = ins_next_prof_range(1);
                     
-                    if found_jump_inds_next_prof
-                        li_cand1(jump_inds_next_prof) = true;
+                    while next_last_ind < ins_next_prof_range(end)
+                        
+                        start_next_i = next_last_ind;
+                        
+                        [jump_inds_next_prof, found_jump_inds_next_prof, next_last_ind] = ...
+                            f_analyze_prof(next_pc_prof, n_pc_profs_cumsum(i), ...
+                            diff_z_std_multiplier*3/4, ins_next_prof_range);
+                        
+                        end_next_i = next_last_ind;
+                        
+                        % If found some candidates in the next profile, ...
+                        if found_jump_inds_next_prof == 1
+                            % ... classify the points as candidates, ...
+                            li_cand1(jump_inds_next_prof) = true;
+                            
+                            % ... and remove all processed indices from the
+                            % next range of indices (outer while loop), so
+                            % that repetition is reduced.
+                            for next_i = start_next_i:end_next_i
+                                next_prof_range = next_prof_range(next_prof_range~=next_i);
+                            end
+                        end
+                        % update ins_next_prof_range based on next_last_ind
+                        ins_next_prof_range = next_last_ind:ins_next_prof_range(end);
+                        
                     end
                 end
             end
@@ -197,7 +233,7 @@ for i = range_profs
 end
 
 t_elapsed = toc(ticID);
-disp(['Find candidates 1: ', num2str(t_elapsed), ' seconds.'])
+disp(['Find candidates along profs: ', num2str(t_elapsed), ' seconds.'])
 
 ticID = tic;
 % Find candidates across the profiles
@@ -206,7 +242,7 @@ li_cand2 = f_analyze_across_profs(sub_pc, sub_i_profs, n_pc_profs_cumsum, ...
     f_mirror, timestamp_th, dist_th);
 
 t_elapsed = toc(ticID);
-disp(['Find candidates 2: ', num2str(t_elapsed), ' seconds.'])
+disp(['Find candidates across profs: ', num2str(t_elapsed), ' seconds.'])
 %% Neighbourhood analysis
 ticID = tic;
 % Small scale neigh analysis only on li_cand1

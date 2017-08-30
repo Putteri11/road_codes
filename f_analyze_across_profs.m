@@ -23,6 +23,8 @@ function [ li ] = f_analyze_across_profs( sub_pc, sub_i_profs, n_pc_profs_cumsum
 %           scanner mirror frequency
 %       - timestamp_th:
 %           parameter from f_find_cracks_and_holes
+%       - dist_th:
+%           parameter from f_find_cracks_and_holes
 %
 %   Output:
 %       - li (sub_n_pc x 1):
@@ -30,12 +32,12 @@ function [ li ] = f_analyze_across_profs( sub_pc, sub_i_profs, n_pc_profs_cumsum
 %           point cloud (sub_pc)
 %
 %   Possible improvements:
-%       - concatenating the input parameters (from f_find_crakcs_and_holes)
+%       - Concatenating the input parameters (from f_find_crakcs_and_holes)
 %       into a single input array, then extract/name the parameters inside
-%       the function
+%       the function. I.e. reduce the number of inputs (currently 10)!
 %       - Efficiency and/or algorithm improvements
 %
-%   Author: Joona Savela 28.8.2017
+%   Author: Joona Savela 30.8.2017
 
 
 % Initializations
@@ -95,6 +97,8 @@ for i=2:sub_n_profs-1 % skip the first and the last profile
         
         % Calculate the difference between the average z coordinates in
         % this and the next profile
+        
+        
         li_this_prof = abs( pc_prof(:,4)-pc_prof(ii,4) ) < timestamp_th;
         li_next_prof = abs( (next_pc_prof(:,4)-pc_prof(ii,4))-1/f_mirror ) ...
             < timestamp_th;
@@ -102,8 +106,8 @@ for i=2:sub_n_profs-1 % skip the first and the last profile
         z = pc_prof(li_this_prof, 3);
         z_next = next_pc_prof(li_next_prof, 3);
         
-        z_mean = mean(z);
-        z_mean_next = mean(z_next);
+        z_mean = sum(z)/length(z); % Slightly faster than MATLAB's "mean" function
+        z_mean_next = sum(z_next)/length(z_next);
         
         z_prof_diff = z_mean_next - z_mean;
         

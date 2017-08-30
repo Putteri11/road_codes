@@ -22,8 +22,8 @@ disp(['Time elapsed: ', num2str(t_elapsed_profRetr), ' seconds.'])
 %
 %%
 
-% [li_1, pc_1] = Carve_Several_2D_Objects_edit_Joona(Xyzti(1:10:end, 1:2), 3); % haetaan alueet harvemmasta pilvestä
-% li_2 = logical(Carve_Several_2D_Objects(Xyzti(:, 1:2), pc_1)); % haetaan alueissa olevat pisteet koko pilvestä
+[li_1, pc_1] = Carve_Several_2D_Objects_edit_Joona(Xyzti(1:10:end, 1:2), 3); % haetaan alueet harvemmasta pilvestä
+li_2 = logical(Carve_Several_2D_Objects(Xyzti(:, 1:2), pc_1)); % haetaan alueissa olevat pisteet koko pilvestä
 
 %%
 tic
@@ -128,6 +128,8 @@ next_pc_prof = sub_pc(logical(sub_i_profs==2-1+first_prof), :);
 next_l_prof = length(next_pc_prof(:,1));
 next_prof_range = 2:next_l_prof-1;
 
+test_li = false(sub_n_pc, 1);
+
 for i=2:sub_n_profs-1
     prof_i = i-1+first_prof;
     pc_prof = next_pc_prof;
@@ -146,29 +148,43 @@ for i=2:sub_n_profs-1
             [jump_inds, found_jump_inds, last_ind] = f_analyze_prof(pc_prof, ...
                 helper(i - 1), std_diff_z_th, prof_range);
             
-            if found_jump_inds 
+            if found_jump_inds > 0
                 
-                li_cand(jump_inds) = true;
+                if found_jump_inds == 1
+                    li_cand(jump_inds) = true;
+                end
                 
                 Q = pc_prof(jump_inds(1:end-1:end) - helper(i - 1), 1:3);
-                rn = dist*1.5;
+                rn = dist*1.3;
                 ins_neigh_next_prof = f_find_neighbourhood(next_pc_prof, Q, rn);
                 ins_next_prof_range = min(ins_neigh_next_prof{1}):max(ins_neigh_next_prof{2})-1;
                 
                 if ~isempty(ins_next_prof_range)
                     
-                    [jump_inds_next_prof, found_jump_inds_next_prof, ~] = ...
-                        f_analyze_prof(next_pc_prof, helper(i), ...
-                        std_diff_z_th*4/5, ins_next_prof_range);
+                    test_li(helper(i)+ins_next_prof_range) = true;
                     
-                    if found_jump_inds_next_prof
-                        li_cand(jump_inds_next_prof) = true;
+                    next_last_ind = ins_next_prof_range(1);
+                    
+                    while next_last_ind < ins_next_prof_range(end)
+                        
+                        start_next_i = next_last_ind;
+                        
+                        [jump_inds_next_prof, found_jump_inds_next_prof, next_last_ind] = ...
+                            f_analyze_prof(next_pc_prof, helper(i), ...
+                            std_diff_z_th*3/4, ins_next_prof_range);
+                        
+                        end_next_i = next_last_ind;
+                        
+                        if found_jump_inds_next_prof > 0
+                            li_cand(jump_inds_next_prof) = true;
+                            for next_i = start_next_i:end_next_i
+                                next_prof_range = next_prof_range(next_prof_range~=next_i);
+                            end
+                        end
+                        
+                        ins_next_prof_range = next_last_ind:ins_next_prof_range(end);
+                        
                     end
-                    
-                    for next_i = ins_next_prof_range
-                        next_prof_range = next_prof_range(next_prof_range~=next_i);
-                    end
-                    
                 end
             end
             
@@ -212,6 +228,8 @@ f_initFig(ind_fig, 'w');
 % plot(Xyzti(li_2, 1), Xyzti(li_2, 2), 'o', 'markersize', 6)
 fscatter3_edit_Joona(sub_pc(:, 1), sub_pc(:, 2), sub_pc(:, 3), sub_pc(:, 5), cmap);
 plot3(sub_pc(out_li, 1), sub_pc(out_li, 2), sub_pc(out_li, 3), 'ro', 'markersize', 6);
+
+% plot3(sub_pc(test_li, 1), sub_pc(test_li, 2), sub_pc(test_li, 3), 'bo', 'markersize', 6);
 
 % out_text = ['i_th: ', num2str(diff_i_th), '; ', ...
 %     'grad_z_th: ', num2str(diff_z_th), '; ', 'd_th: ', num2str(d_th)];
